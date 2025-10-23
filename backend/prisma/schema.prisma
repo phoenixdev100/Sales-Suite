@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALESPERSON
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     @default(SALESPERSON)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sales Sale[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sku         String   @unique
+  barcode     String?  @unique
+  price       Decimal  @db.Decimal(10, 2)
+  cost        Decimal  @db.Decimal(10, 2)
+  quantity    Int      @default(0)
+  minStock    Int      @default(10)
+  maxStock    Int      @default(1000)
+  isActive    Boolean  @default(true)
+  imageUrl    String?
+  categoryId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  category  Category   @relation(fields: [categoryId], references: [id])
+  saleItems SaleItem[]
+
+  @@map("products")
+}
+
+model Sale {
+  id          String     @id @default(cuid())
+  saleNumber  String     @unique
+  totalAmount Decimal    @db.Decimal(10, 2)
+  discount    Decimal    @default(0) @db.Decimal(10, 2)
+  tax         Decimal    @default(0) @db.Decimal(10, 2)
+  finalAmount Decimal    @db.Decimal(10, 2)
+  status      SaleStatus @default(PENDING)
+  paymentMethod String?
+  customerName  String?
+  customerEmail String?
+  customerPhone String?
+  notes       String?
+  soldById    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  soldBy    User       @relation(fields: [soldById], references: [id])
+  saleItems SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id       String  @id @default(cuid())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+  total    Decimal @db.Decimal(10, 2)
+  saleId   String
+  productId String
+
+  // Relations
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  type        String   // IN, OUT, ADJUSTMENT
+  quantity    Int
+  reason      String?
+  reference   String?  // Sale ID, Purchase Order, etc.
+  createdAt   DateTime @default(now())
+
+  @@map("stock_movements")
+}
