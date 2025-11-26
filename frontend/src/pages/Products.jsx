@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash2,
   AlertTriangle,
   Package,
   Eye,
@@ -23,7 +23,9 @@ export default function Products() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [showLowStock, setShowLowStock] = useState(false)
+  // Initialize showLowStock from URL params to avoid state change
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const [showLowStock, setShowLowStock] = useState(urlParams?.get('lowStock') === 'true')
   const [sortBy, setSortBy] = useState('name')
   const [sortOrder, setSortOrder] = useState('asc')
   const [currentPage, setCurrentPage] = useState(1)
@@ -33,24 +35,26 @@ export default function Products() {
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [productToDelete, setProductToDelete] = useState(null)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const limit = 10
 
   useEffect(() => {
+    // Initial data fetch only
     fetchCategories()
+    fetchProducts()
+
+    // Mark as initialized after all initial calls are done
+    setTimeout(() => setIsInitialized(true), 100)
   }, [])
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('lowStock') === 'true') {
-      setShowLowStock(true)
+    // Only fetch products when filters change AFTER initialization
+    if (isInitialized) {
+      const debouncedFetch = debounce(fetchProducts, 300)
+      debouncedFetch()
     }
-  }, [])
-
-  useEffect(() => {
-    const debouncedFetch = debounce(fetchProducts, 300)
-    debouncedFetch()
-  }, [searchTerm, selectedCategory, showLowStock, sortBy, sortOrder, currentPage])
+  }, [searchTerm, selectedCategory, showLowStock, sortBy, sortOrder, currentPage, isInitialized])
 
   const fetchProducts = async () => {
     try {
@@ -144,7 +148,7 @@ export default function Products() {
           <h1 className="text-2xl font-bold text-gray-900">Products</h1>
           <p className="text-gray-600">Manage your inventory and product catalog</p>
         </div>
-        
+
         {hasPermission(['ADMIN', 'MANAGER']) && (
           <button
             onClick={handleAddProduct}
@@ -393,7 +397,7 @@ export default function Products() {
                   >
                     Previous
                   </button>
-                  
+
                   {/* Page numbers */}
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -407,23 +411,22 @@ export default function Products() {
                       } else {
                         pageNum = currentPage - 2 + i
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`w-8 h-8 text-sm rounded-lg ${
-                            currentPage === pageNum
-                              ? 'bg-primary-600 text-white'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          }`}
+                          className={`w-8 h-8 text-sm rounded-lg ${currentPage === pageNum
+                            ? 'bg-primary-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-100'
+                            }`}
                         >
                           {pageNum}
                         </button>
                       )
                     })}
                   </div>
-                  
+
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -453,7 +456,7 @@ export default function Products() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            
+
             <div className="inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div className="sm:flex sm:items-start">
                 <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-danger-100 sm:mx-0 sm:h-10 sm:w-10">

@@ -30,9 +30,17 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      const errorCode = error.response?.data?.code
+      // Only redirect to login for specific auth errors, not all 401s
+      if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN' || errorCode === 'AUTH_FAILED') {
+        console.log('Authentication error, redirecting to login:', errorCode)
+        localStorage.removeItem('token')
+        delete api.defaults.headers.common['Authorization']
+        // Only redirect if not already on login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+        }
+      }
     }
     return Promise.reject(error)
   }
