@@ -1,28 +1,28 @@
 import { useState, useEffect } from 'react'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  ShoppingCart, 
-  Package, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  ShoppingCart,
+  Package,
   Users,
   AlertTriangle,
   Eye
 } from 'lucide-react'
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   Legend
 } from 'recharts'
@@ -36,14 +36,18 @@ export default function Dashboard() {
   const [inventoryAnalytics, setInventoryAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('30')
+  const [analyticsFetched, setAnalyticsFetched] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
   }, [])
 
   useEffect(() => {
-    fetchSalesAnalytics()
-  }, [period])
+    if (!analyticsFetched) {
+      fetchSalesAnalytics()
+      setAnalyticsFetched(true)
+    }
+  }, [period, analyticsFetched])
 
   const fetchDashboardData = async () => {
     try {
@@ -51,7 +55,7 @@ export default function Dashboard() {
         dashboardAPI.getOverview(),
         dashboardAPI.getInventoryAnalytics()
       ])
-      
+
       setDashboardData(overviewRes.data)
       setInventoryAnalytics(inventoryRes.data)
     } catch (error) {
@@ -123,11 +127,14 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Welcome back! Here's what's happening with your store.</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => {
+              setPeriod(e.target.value)
+              setAnalyticsFetched(false) // Reset flag to allow new API call
+            }}
             className="input w-auto"
           >
             <option value="7">Last 7 days</option>
@@ -155,28 +162,25 @@ export default function Dashboard() {
                   {stat.changeType === "warning" && (
                     <AlertTriangle className="h-4 w-4 text-warning-600 mr-1" />
                   )}
-                  <span className={`text-sm ${
-                    stat.changeType === "increase" ? "text-success-600" :
+                  <span className={`text-sm ${stat.changeType === "increase" ? "text-success-600" :
                     stat.changeType === "decrease" ? "text-danger-600" :
-                    stat.changeType === "warning" ? "text-warning-600" :
-                    "text-gray-600"
-                  }`}>
+                      stat.changeType === "warning" ? "text-warning-600" :
+                        "text-gray-600"
+                    }`}>
                     {stat.change}
                   </span>
                 </div>
               </div>
-              <div className={`p-3 rounded-xl ${
-                stat.color === "success" ? "bg-success-100" :
+              <div className={`p-3 rounded-xl ${stat.color === "success" ? "bg-success-100" :
                 stat.color === "primary" ? "bg-primary-100" :
-                stat.color === "warning" ? "bg-warning-100" :
-                "bg-gray-100"
-              }`}>
-                <stat.icon className={`h-6 w-6 ${
-                  stat.color === "success" ? "text-success-600" :
+                  stat.color === "warning" ? "bg-warning-100" :
+                    "bg-gray-100"
+                }`}>
+                <stat.icon className={`h-6 w-6 ${stat.color === "success" ? "text-success-600" :
                   stat.color === "primary" ? "text-primary-600" :
-                  stat.color === "warning" ? "text-warning-600" :
-                  "text-gray-600"
-                }`} />
+                    stat.color === "warning" ? "text-warning-600" :
+                      "text-gray-600"
+                  }`} />
               </div>
             </div>
           </div>
@@ -204,16 +208,16 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={salesAnalytics?.salesTrend || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   stroke="#64748b"
                   fontSize={12}
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis stroke="#64748b" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #e2e8f0',
                     borderRadius: '12px',
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
@@ -224,18 +228,18 @@ export default function Dashboard() {
                   ]}
                   labelFormatter={(value) => new Date(value).toLocaleDateString()}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#0ea5e9" 
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#0ea5e9"
                   strokeWidth={3}
                   dot={{ fill: '#0ea5e9', strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, stroke: '#0ea5e9', strokeWidth: 2 }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="sales" 
-                  stroke="#10b981" 
+                <Line
+                  type="monotone"
+                  dataKey="sales"
+                  stroke="#10b981"
                   strokeWidth={3}
                   dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
@@ -269,10 +273,10 @@ export default function Dashboard() {
                     <Cell key={`cell-${index}`} fill={chartColors[index]} />
                   ))}
                 </Pie>
-                <Tooltip 
+                <Tooltip
                   formatter={(value) => [formatCurrency(value), 'Revenue']}
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #e2e8f0',
                     borderRadius: '12px',
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
@@ -357,10 +361,10 @@ export default function Dashboard() {
                 Low Stock Alert
               </h3>
               <p className="text-warning-700 mt-1">
-                {dashboardData.inventory.lowStockProducts} products are running low on stock. 
+                {dashboardData.inventory.lowStockProducts} products are running low on stock.
                 Consider restocking to avoid stockouts.
               </p>
-              <Link 
+              <Link
                 to="/app/products?lowStock=true"
                 className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-warning-800 hover:text-warning-900"
               >

@@ -2,6 +2,24 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '../utils/api'
 import toast from 'react-hot-toast'
 
+// Helper function to check if token is about to expire
+const isTokenExpiringSoon = (token) => {
+  if (!token) return true
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const expirationTime = payload.exp * 1000 // Convert to milliseconds
+    const currentTime = Date.now()
+    const timeUntilExpiry = expirationTime - currentTime
+
+    // Return true if token expires in less than 1 hour
+    return timeUntilExpiry < 60 * 60 * 1000
+  } catch (error) {
+    console.error('Error parsing token:', error)
+    return true
+  }
+}
+
 const AuthContext = createContext({})
 
 export function useAuth() {
@@ -18,23 +36,60 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    if (token) {
+    const refreshToken = localStorage.getItem('refreshToken')
+    const storedUser = localStorage.getItem('user')
+
+    if (token && refreshToken) {
       // Set the token in API headers
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      // Verify token and get user profile
-      fetchProfile()
+
+      if (storedUser) {
+        // Use stored user data first
+        setUser(JSON.parse(storedUser))
+        setLoading(false)
+      } else {
+        // Only fetch profile if no stored user data
+        fetchProfile()
+      }
+
+      // Check if token is about to expire and set up refresh
+      if (isTokenExpiringSoon(token)) {
+        refreshTokenCall()
+      }
     } else {
       setLoading(false)
     }
+
+    // Set up token refresh interval (check every hour)
+    const refreshInterval = setInterval(() => {
+      const currentToken = localStorage.getItem('token')
+      const currentRefreshToken = localStorage.getItem('refreshToken')
+      const currentUser = localStorage.getItem('user')
+      if (currentToken && currentRefreshToken && currentUser && isTokenExpiringSoon(currentToken)) {
+        refreshTokenCall()
+      }
+    }, 60 * 60 * 1000) // 1 hour
+
+    return () => clearInterval(refreshInterval)
   }, [])
 
   const fetchProfile = async () => {
     try {
       const response = await api.get('/auth/profile')
-      setUser(response.data.user)
+      const userData = response.data.user
+      setUser(userData)
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(userData))
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      logout()
+      // Only logout if token is expired or invalid, not for network errors
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.log('Token invalid or expired, logging out')
+        logout()
+      } else {
+        console.log('Network error, keeping user logged in')
+        setLoading(false)
+      }
     } finally {
       setLoading(false)
     }
@@ -43,13 +98,16 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password })
-      const { user, token } = response.data
-      
-      // Store token
+      const { user, token, refreshToken } = response.data
+
+      // Store tokens
       localStorage.setItem('token', token)
+      localStorage.setItem('refreshToken', refreshToken || '')
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      
+
       setUser(user)
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(user))
       toast.success('Login successful!')
       return { success: true }
     } catch (error) {
@@ -62,13 +120,16 @@ export function AuthProvider({ children }) {
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData)
-      const { user, token } = response.data
-      
-      // Store token
+      const { user, token, refreshToken } = response.data
+
+      // Store tokens
       localStorage.setItem('token', token)
+      localStorage.setItem('refreshToken', refreshToken || '')
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      
+
       setUser(user)
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(user))
       toast.success('Registration successful!')
       return { success: true }
     } catch (error) {
@@ -78,8 +139,35 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const refreshTokenCall = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken')
+      if (!refreshToken) {
+        logout()
+        return { success: false }
+      }
+
+      const response = await api.post('/auth/refresh', { refreshToken })
+      const { token: newToken, refreshToken: newRefreshToken } = response.data
+
+      // Update tokens
+      localStorage.setItem('token', newToken)
+      localStorage.setItem('refreshToken', newRefreshToken)
+      api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to refresh tokens:', error)
+      // If refresh fails, logout user
+      logout()
+      return { success: false }
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
     delete api.defaults.headers.common['Authorization']
     setUser(null)
     toast.success('Logged out successfully')
@@ -89,6 +177,8 @@ export function AuthProvider({ children }) {
     try {
       const response = await api.put(`/users/${user.id}`, profileData)
       setUser(response.data.user)
+      // Update stored user data
+      localStorage.setItem('user', JSON.stringify(response.data.user))
       toast.success('Profile updated successfully!')
       return { success: true }
     } catch (error) {
@@ -124,6 +214,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    refreshToken: refreshTokenCall,
     updateProfile,
     changePassword,
     hasPermission
