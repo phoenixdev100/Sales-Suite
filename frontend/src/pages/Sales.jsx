@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react'
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Eye, 
+import { useState, useEffect, useRef } from 'react'
+import {
+  Plus,
+  Search,
+  Filter,
+  Eye,
   ShoppingCart,
   Calendar,
   DollarSign,
   User,
-  Package
+  Package,
+  ChevronDown
 } from 'lucide-react'
 import { salesAPI, usersAPI } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -35,6 +36,19 @@ export default function Sales() {
   const [selectedSale, setSelectedSale] = useState(null)
   const [salesStats, setSalesStats] = useState(null)
 
+  // Custom dropdown states
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
+  const [soldByDropdownOpen, setSoldByDropdownOpen] = useState(false)
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
+  const statusDropdownRef = useRef(null)
+  const soldByDropdownRef = useRef(null)
+  const sortDropdownRef = useRef(null)
+
+  // Frontend caching
+  const [salesCache, setSalesCache] = useState(new Map())
+  const [lastFetchTime, setLastFetchTime] = useState(null)
+  const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
   const limit = 10
 
   useEffect(() => {
@@ -42,6 +56,26 @@ export default function Sales() {
       fetchUsers()
     }
     fetchSalesStats()
+  }, [])
+
+  // Click outside handlers for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setStatusDropdownOpen(false)
+      }
+      if (soldByDropdownRef.current && !soldByDropdownRef.current.contains(event.target)) {
+        setSoldByDropdownOpen(false)
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target)) {
+        setSortDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
   useEffect(() => {
@@ -52,6 +86,31 @@ export default function Sales() {
   const fetchSales = async () => {
     try {
       setLoading(true)
+
+      // Generate cache key based on filters
+      const cacheKey = JSON.stringify({
+        page: currentPage,
+        limit,
+        search: searchTerm,
+        status: statusFilter,
+        soldBy: soldByFilter,
+        dateFrom: dateFromFilter,
+        dateTo: dateToFilter,
+        sortBy,
+        sortOrder
+      })
+
+      // Check cache first
+      const now = Date.now()
+      const cached = salesCache.get(cacheKey)
+      if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+        setSales(cached.data.sales)
+        setTotalPages(cached.data.pagination.pages)
+        setTotalSales(cached.data.pagination.total)
+        setLoading(false)
+        return
+      }
+
       const params = {
         page: currentPage,
         limit,
@@ -65,9 +124,18 @@ export default function Sales() {
       }
 
       const response = await salesAPI.getAll(params)
-      setSales(response.data.sales)
-      setTotalPages(response.data.pagination.pages)
-      setTotalSales(response.data.pagination.total)
+      const data = response.data
+
+      // Update cache
+      setSalesCache(prev => new Map(prev).set(cacheKey, {
+        data,
+        timestamp: now
+      }))
+      setLastFetchTime(now)
+
+      setSales(data.sales)
+      setTotalPages(data.pagination.pages)
+      setTotalSales(data.pagination.total)
     } catch (error) {
       console.error('Failed to fetch sales:', error)
       toast.error('Failed to fetch sales')
@@ -107,6 +175,9 @@ export default function Sales() {
   const handleSaleSaved = () => {
     setShowModal(false)
     setSelectedSale(null)
+    // Clear cache when sale is saved
+    setSalesCache(new Map())
+    setLastFetchTime(null)
     fetchSales()
     fetchSalesStats()
   }
@@ -139,7 +210,7 @@ export default function Sales() {
           <h1 className="text-2xl font-bold text-gray-900">Sales</h1>
           <p className="text-gray-600">Track and manage your sales transactions</p>
         </div>
-        
+
         <button
           onClick={handleAddSale}
           className="btn btn-primary"
@@ -214,35 +285,124 @@ export default function Sales() {
           </div>
 
           {/* Status Filter */}
-          <div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input"
-            >
-              <option value="">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-              <option value="REFUNDED">Refunded</option>
-            </select>
+          <div className="relative" ref={statusDropdownRef}>
+            <div className="relative">
+              <button
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <span className="truncate">
+                  {statusFilter || 'All Status'}
+                </span>
+                <ChevronDown className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {statusDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                  <div className="py-1 max-h-48 overflow-y-auto">
+                    <button
+                      onClick={() => {
+                        setStatusFilter('')
+                        setStatusDropdownOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${!statusFilter ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                        }`}
+                    >
+                      All Status
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStatusFilter('PENDING')
+                        setStatusDropdownOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${statusFilter === 'PENDING' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                        }`}
+                    >
+                      Pending
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStatusFilter('COMPLETED')
+                        setStatusDropdownOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${statusFilter === 'COMPLETED' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                        }`}
+                    >
+                      Completed
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStatusFilter('CANCELLED')
+                        setStatusDropdownOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${statusFilter === 'CANCELLED' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                        }`}
+                    >
+                      Cancelled
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStatusFilter('REFUNDED')
+                        setStatusDropdownOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${statusFilter === 'REFUNDED' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                        }`}
+                    >
+                      Refunded
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Sold By Filter */}
           {hasPermission(['ADMIN', 'MANAGER']) && (
-            <div>
-              <select
-                value={soldByFilter}
-                onChange={(e) => setSoldByFilter(e.target.value)}
-                className="input"
-              >
-                <option value="">All Salespeople</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName}
-                  </option>
-                ))}
-              </select>
+            <div className="relative" ref={soldByDropdownRef}>
+              <div className="relative">
+                <button
+                  onClick={() => setSoldByDropdownOpen(!soldByDropdownOpen)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                  <span className="truncate">
+                    {soldByFilter
+                      ? users.find(u => u.id === soldByFilter)?.firstName + ' ' + users.find(u => u.id === soldByFilter)?.lastName
+                      : 'All Salespeople'
+                    }
+                  </span>
+                  <ChevronDown className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 transition-transform ${soldByDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {soldByDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                    <div className="py-1 max-h-48 overflow-y-auto">
+                      <button
+                        onClick={() => {
+                          setSoldByFilter('')
+                          setSoldByDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${!soldByFilter ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                          }`}
+                      >
+                        All Salespeople
+                      </button>
+                      {users.map((user) => (
+                        <button
+                          key={user.id}
+                          onClick={() => {
+                            setSoldByFilter(user.id)
+                            setSoldByDropdownOpen(false)
+                          }}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${soldByDropdownOpen === user.id ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                            }`}
+                        >
+                          {user.firstName} {user.lastName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -271,22 +431,97 @@ export default function Sales() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-            <select
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [field, order] = e.target.value.split('-')
-                setSortBy(field)
-                setSortOrder(order)
-              }}
-              className="input"
-            >
-              <option value="createdAt-desc">Newest First</option>
-              <option value="createdAt-asc">Oldest First</option>
-              <option value="finalAmount-desc">Highest Amount</option>
-              <option value="finalAmount-asc">Lowest Amount</option>
-              <option value="saleNumber-asc">Sale Number A-Z</option>
-              <option value="saleNumber-desc">Sale Number Z-A</option>
-            </select>
+            <div className="relative" ref={sortDropdownRef}>
+              <div className="relative">
+                <button
+                  onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                  <span className="truncate">
+                    {sortBy === 'createdAt' && sortOrder === 'desc' && 'Newest First'}
+                    {sortBy === 'createdAt' && sortOrder === 'asc' && 'Oldest First'}
+                    {sortBy === 'finalAmount' && sortOrder === 'desc' && 'Highest Amount'}
+                    {sortBy === 'finalAmount' && sortOrder === 'asc' && 'Lowest Amount'}
+                    {sortBy === 'saleNumber' && sortOrder === 'asc' && 'Sale Number A-Z'}
+                    {sortBy === 'saleNumber' && sortOrder === 'desc' && 'Sale Number Z-A'}
+                  </span>
+                  <ChevronDown className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 transition-transform ${sortDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {sortDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                    <div className="py-1 max-h-48 overflow-y-auto">
+                      <button
+                        onClick={() => {
+                          setSortBy('createdAt')
+                          setSortOrder('desc')
+                          setSortDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${sortBy === 'createdAt' && sortOrder === 'desc' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                          }`}
+                      >
+                        Newest First
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('createdAt')
+                          setSortOrder('asc')
+                          setSortDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${sortBy === 'createdAt' && sortOrder === 'asc' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                          }`}
+                      >
+                        Oldest First
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('finalAmount')
+                          setSortOrder('desc')
+                          setSortDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${sortBy === 'finalAmount' && sortOrder === 'desc' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                          }`}
+                      >
+                        Highest Amount
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('finalAmount')
+                          setSortOrder('asc')
+                          setSortDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${sortBy === 'finalAmount' && sortOrder === 'asc' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                          }`}
+                      >
+                        Lowest Amount
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('saleNumber')
+                          setSortOrder('asc')
+                          setSortDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${sortBy === 'saleNumber' && sortOrder === 'asc' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                          }`}
+                      >
+                        Sale Number A-Z
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('saleNumber')
+                          setSortOrder('desc')
+                          setSortDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${sortBy === 'saleNumber' && sortOrder === 'desc' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                          }`}
+                      >
+                        Sale Number Z-A
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex items-end">
@@ -464,7 +699,7 @@ export default function Sales() {
                   >
                     Previous
                   </button>
-                  
+
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum
@@ -477,23 +712,22 @@ export default function Sales() {
                       } else {
                         pageNum = currentPage - 2 + i
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`w-8 h-8 text-sm rounded-lg ${
-                            currentPage === pageNum
-                              ? 'bg-primary-600 text-white'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          }`}
+                          className={`w-8 h-8 text-sm rounded-lg ${currentPage === pageNum
+                            ? 'bg-primary-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-100'
+                            }`}
                         >
                           {pageNum}
                         </button>
                       )
                     })}
                   </div>
-                  
+
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}

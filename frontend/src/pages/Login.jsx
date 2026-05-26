@@ -25,33 +25,42 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-4 px-4 sm:py-8 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-2xl bg-primary-600">
-            <LayoutDashboard className="h-8 w-8 text-white" />
+          <div className="mx-auto h-12 w-12 sm:h-16 sm:w-16 flex items-center justify-center rounded-2xl bg-primary-600 shadow-lg">
+            <LayoutDashboard className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+          <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-bold text-gray-900">
             Sign in to your account
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             Welcome back to Sales Suite
           </p>
         </div>
 
         {/* Demo credentials */}
-        <div className="rounded-xl bg-blue-50 p-4">
+        <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 sm:p-4">
           <h3 className="text-sm font-medium text-blue-800 mb-2">Demo Credentials</h3>
-          <div className="text-xs text-blue-700 space-y-1">
-            <div><strong>Admin:</strong> admin@example.com / admin123</div>
-            <div><strong>Manager:</strong> manager@example.com / manager123</div>
-            <div><strong>Sales:</strong> sales@example.com / sales123</div>
+          <div className="text-xs sm:text-sm text-blue-700 space-y-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+              <span className="font-medium">Admin:</span>
+              <span className="font-mono">admin@example.com / admin123</span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+              <span className="font-medium">Manager:</span>
+              <span className="font-mono">manager@example.com / manager123</span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1">
+              <span className="font-medium">Sales:</span>
+              <span className="font-mono">sales@example.com / sales123</span>
+            </div>
           </div>
         </div>
 
         {/* Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             {/* Email */}
             <div>
@@ -68,7 +77,7 @@ export default function Login() {
                 })}
                 type="email"
                 autoComplete="email"
-                className="input"
+                className="input text-sm sm:text-base"
                 placeholder="Enter your email"
               />
               {errors.email && (
@@ -92,7 +101,7 @@ export default function Login() {
                   })}
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className="input pr-10"
+                  className="input pr-10 text-sm sm:text-base"
                   placeholder="Enter your password"
                 />
                 <button
@@ -114,7 +123,7 @@ export default function Login() {
           </div>
 
           {/* Remember me and forgot password */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
             <div className="flex items-center">
               <input
                 id="remember-me"
@@ -127,7 +136,7 @@ export default function Login() {
               </label>
             </div>
 
-            <div className="text-sm">
+            <div className="text-sm text-center sm:text-right">
               <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
                 Forgot your password?
               </a>
@@ -139,12 +148,13 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary w-full"
+              className="btn btn-primary w-full text-sm sm:text-base py-3 sm:py-2"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
+                  <span className="hidden sm:inline">Signing in...</span>
+                  <span className="sm:hidden">Signing...</span>
                 </div>
               ) : (
                 'Sign in'
@@ -157,7 +167,8 @@ export default function Login() {
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
               <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-                Sign up here
+                <span className="hidden sm:inline">Sign up here</span>
+                <span className="sm:hidden">Sign up</span>
               </Link>
             </p>
           </div>

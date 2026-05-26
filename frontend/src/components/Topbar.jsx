@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Menu, Bell, Search, LogOut, User, Settings } from 'lucide-react'
+import { Menu, Bell, Search, LogOut, User, Settings, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { Link } from 'react-router-dom'
 import { cn } from '../utils/helpers'
 
-export default function Topbar({ onMenuClick }) {
+export default function Topbar({ onMenuClick, sidebarCollapsed, setSidebarCollapsed }) {
   const { user, logout } = useAuth()
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -14,12 +14,16 @@ export default function Topbar({ onMenuClick }) {
     setProfileDropdownOpen(false)
   }
 
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed)
+  }
+
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200/50 bg-white/80 backdrop-blur-xl px-4 shadow-lg sm:gap-x-6 sm:px-6 lg:px-8">
       {/* Mobile menu button */}
       <button
         type="button"
-        className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+        className="-m-2.5 p-2.5 text-gray-700 lg:hidden hover:bg-gray-100 rounded-lg transition-colors"
         onClick={onMenuClick}
       >
         <Menu className="h-6 w-6" />
@@ -28,44 +32,39 @@ export default function Topbar({ onMenuClick }) {
       {/* Separator */}
       <div className="h-6 w-px bg-gray-200 lg:hidden" />
 
-      <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        {/* Search */}
-        <form className="relative flex flex-1" action="#" method="GET">
-          <label htmlFor="search-field" className="sr-only">
-            Search
-          </label>
-          <Search className="pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-400 ml-3" />
-          <input
-            id="search-field"
-            className="block h-full w-full border-0 py-0 pl-11 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm bg-transparent"
-            placeholder="Search products, sales, customers..."
-            type="search"
-            name="search"
-          />
-        </form>
+      <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6 items-center">
+        {/* Welcome message */}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+            Welcome to Sales Suite, {user?.firstName}!
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 truncate hidden sm:block">
+            Manage your inventory and sales efficiently
+          </p>
+        </div>
 
-        <div className="flex items-center gap-x-4 lg:gap-x-6">
+        <div className="flex items-center gap-x-3 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
           {/* Notifications */}
           <div className="relative">
             <button
               type="button"
-              className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative"
+              className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-colors relative"
               onClick={() => setNotificationsOpen(!notificationsOpen)}
             >
               <Bell className="h-6 w-6" />
               {/* Notification badge */}
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-danger-500 text-xs text-white flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gradient-to-br from-danger-500 to-danger-600 text-xs text-white flex items-center justify-center shadow-lg shadow-danger-500/30">
                 3
               </span>
             </button>
 
             {/* Notifications dropdown */}
             {notificationsOpen && (
-              <div className="absolute right-0 z-10 mt-2 w-80 origin-top-right rounded-xl bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+              <div className="absolute right-0 z-10 mt-2 w-80 origin-top-right rounded-xl bg-white/95 backdrop-blur-xl py-2 shadow-2xl ring-1 ring-gray-900/5 focus:outline-none border border-gray-200/50">
                 <div className="px-4 py-2 border-b border-gray-100">
-                  <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
                 </div>
-                
+
                 <div className="max-h-96 overflow-y-auto">
                   {/* Sample notifications */}
                   <div className="px-4 py-3 hover:bg-gray-50">
@@ -110,12 +109,6 @@ export default function Topbar({ onMenuClick }) {
                     </div>
                   </div>
                 </div>
-
-                <div className="px-4 py-2 border-t border-gray-100">
-                  <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                    View all notifications
-                  </button>
-                </div>
               </div>
             )}
           </div>
@@ -127,11 +120,11 @@ export default function Topbar({ onMenuClick }) {
           <div className="relative">
             <button
               type="button"
-              className="-m-1.5 flex items-center p-1.5"
+              className="-m-1.5 flex items-center p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             >
               <span className="sr-only">Open user menu</span>
-              <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-sm font-medium text-white">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-sm font-medium text-white shadow-lg shadow-primary-500/30">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </div>
               <span className="hidden lg:flex lg:items-center">
@@ -143,42 +136,7 @@ export default function Topbar({ onMenuClick }) {
 
             {/* Profile dropdown menu */}
             {profileDropdownOpen && (
-              <div className="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-xl bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
-                <div className="px-3 py-2 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.firstName} {user?.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
-                  <span className={cn(
-                    "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium mt-1",
-                    user?.role === 'ADMIN' ? 'bg-danger-100 text-danger-800' :
-                    user?.role === 'MANAGER' ? 'bg-warning-100 text-warning-800' :
-                    'bg-primary-100 text-primary-800'
-                  )}>
-                    {user?.role?.toLowerCase()}
-                  </span>
-                </div>
-
-                <Link
-                  to="/settings"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  onClick={() => setProfileDropdownOpen(false)}
-                >
-                  <User className="h-4 w-4" />
-                  Your Profile
-                </Link>
-
-                <Link
-                  to="/settings"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  onClick={() => setProfileDropdownOpen(false)}
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </Link>
-
-                <div className="border-t border-gray-100 my-1"></div>
-
+              <div className="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-xl bg-white/95 backdrop-blur-xl py-2 shadow-2xl ring-1 ring-gray-900/5 focus:outline-none border border-gray-200/50">
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -194,8 +152,8 @@ export default function Topbar({ onMenuClick }) {
 
       {/* Click outside to close dropdowns */}
       {(profileDropdownOpen || notificationsOpen) && (
-        <div 
-          className="fixed inset-0 z-0" 
+        <div
+          className="fixed inset-0 z-20"
           onClick={() => {
             setProfileDropdownOpen(false)
             setNotificationsOpen(false)
