@@ -2,12 +2,17 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest, productSchema, updateProductSchema } = require('../utils/validation');
+const {
+  cacheProducts,
+  invalidateProductsCache,
+  getCacheStats
+} = require('../middleware/cache');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all products with pagination, search, and filtering
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheProducts, async (req, res) => {
   try {
     const {
       page = 1,
@@ -23,24 +28,26 @@ router.get('/', authenticateToken, async (req, res) => {
     const take = parseInt(limit);
 
     // Build where clause
-    const where = {
-      AND: [
-        search ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { sku: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } }
-          ]
-        } : {},
-        category ? { categoryId: category } : {},
-        lowStock === 'true' ? {
-          quantity: { lte: prisma.raw('min_stock') }
-        } : {}
-      ]
-    };
+    const whereConditions = [];
+
+    if (search) {
+      whereConditions.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
+      });
+    }
+
+    if (category) {
+      whereConditions.push({ categoryId: category });
+    }
+
+    const where = whereConditions.length > 0 ? { AND: whereConditions } : {};
 
     // Get products with category information
-    const products = await prisma.product.findMany({
+    let products = await prisma.product.findMany({
       where,
       include: {
         category: {
@@ -57,8 +64,23 @@ router.get('/', authenticateToken, async (req, res) => {
       take
     });
 
+    // Apply low stock filtering if requested (since Prisma can't compare fields in where clause)
+    if (lowStock === 'true') {
+      products = products.filter(product => product.quantity <= product.minStock);
+    }
+
     // Get total count for pagination
-    const total = await prisma.product.count({ where });
+    let total;
+    if (lowStock === 'true') {
+      // For low stock, we need to count manually since we filtered after query
+      const allProducts = await prisma.product.findMany({
+        where,
+        select: { id: true, quantity: true, minStock: true }
+      });
+      total = allProducts.filter(product => product.quantity <= product.minStock).length;
+    } else {
+      total = await prisma.product.count({ where });
+    }
 
     // Calculate low stock items
     const lowStockItems = products.filter(product => product.quantity <= product.minStock);
@@ -168,6 +190,9 @@ router.post('/', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), validate
       message: 'Product created successfully',
       product
     });
+
+    // Invalidate products cache after successful creation
+    invalidateProductsCache();
   } catch (error) {
     console.error('Create product error:', error);
     res.status(500).json({ error: 'Failed to create product' });
@@ -223,7 +248,7 @@ router.put('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), valida
     }
 
     // Track quantity changes for stock movement
-    const quantityDiff = updateData.quantity !== undefined ? 
+    const quantityDiff = updateData.quantity !== undefined ?
       updateData.quantity - existingProduct.quantity : 0;
 
     const product = await prisma.product.update({
@@ -256,6 +281,9 @@ router.put('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), valida
       message: 'Product updated successfully',
       product
     });
+
+    // Invalidate products cache after successful update
+    invalidateProductsCache();
   } catch (error) {
     console.error('Update product error:', error);
     res.status(500).json({ error: 'Failed to update product' });
@@ -281,8 +309,8 @@ router.delete('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), asy
 
     // Check if product has been sold
     if (product.saleItems.length > 0) {
-      return res.status(400).json({ 
-        error: 'Cannot delete product that has sales history. Consider deactivating instead.' 
+      return res.status(400).json({
+        error: 'Cannot delete product that has sales history. Consider deactivating instead.'
       });
     }
 
@@ -291,6 +319,9 @@ router.delete('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), asy
     });
 
     res.json({ message: 'Product deleted successfully' });
+
+    // Invalidate products cache after successful deletion
+    invalidateProductsCache();
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ error: 'Failed to delete product' });

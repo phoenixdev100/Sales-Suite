@@ -27,7 +27,8 @@ const registerSchema = Joi.object({
   password: Joi.string().min(6).required(),
   firstName: Joi.string().min(2).max(50).required(),
   lastName: Joi.string().min(2).max(50).required(),
-  role: Joi.string().valid('ADMIN', 'MANAGER', 'SALESPERSON').default('SALESPERSON')
+  role: Joi.string().valid('ADMIN', 'MANAGER', 'SALESPERSON').default('SALESPERSON'),
+  terms: Joi.boolean().valid(true).required()
 });
 
 // Product validation schemas
