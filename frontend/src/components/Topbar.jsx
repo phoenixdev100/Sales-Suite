@@ -36,24 +36,25 @@ export default function Topbar({ onMenuClick, sidebarCollapsed, setSidebarCollap
         {/* Welcome message */}
         <div className="flex-1 min-w-0">
           <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
-            Welcome to Sales Suite, {user?.firstName}!
+            <span className="hidden sm:inline">Welcome to Sales Suite, {user?.firstName}!</span>
+            <span className="sm:hidden">Welcome, {user?.firstName}!</span>
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 truncate hidden sm:block">
             Manage your inventory and sales efficiently
           </p>
         </div>
 
-        <div className="flex items-center gap-x-3 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
+        <div className="flex items-center gap-x-4 sm:gap-x-4 lg:gap-x-6 flex-shrink-0">
           {/* Notifications */}
           <div className="relative">
             <button
               type="button"
-              className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-colors relative"
+              className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-colors relative"
               onClick={() => setNotificationsOpen(!notificationsOpen)}
             >
               <Bell className="h-6 w-6" />
               {/* Notification badge */}
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gradient-to-br from-danger-500 to-danger-600 text-xs text-white flex items-center justify-center shadow-lg shadow-danger-500/30">
+              <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-gradient-to-br from-danger-500 to-danger-600 text-xs text-white flex items-center justify-center shadow-lg shadow-danger-500/30">
                 3
               </span>
             </button>
@@ -120,7 +121,7 @@ export default function Topbar({ onMenuClick, sidebarCollapsed, setSidebarCollap
           <div className="relative">
             <button
               type="button"
-              className="-m-1.5 flex items-center p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center p-1 hover:bg-gray-100 rounded-lg transition-colors"
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             >
               <span className="sr-only">Open user menu</span>

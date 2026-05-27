@@ -65,14 +65,17 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
+      // Strip out database-specific fields that validation does not allow
+      const { id, createdAt, updatedAt, saleItems, ...cleanData } = data
+
       // Convert string numbers to actual numbers
       const formattedData = {
-        ...data,
-        price: parseFloat(data.price),
-        cost: parseFloat(data.cost),
-        quantity: parseInt(data.quantity),
-        minStock: parseInt(data.minStock),
-        maxStock: parseInt(data.maxStock)
+        ...cleanData,
+        price: parseFloat(cleanData.price),
+        cost: parseFloat(cleanData.cost),
+        quantity: parseInt(cleanData.quantity),
+        minStock: parseInt(cleanData.minStock),
+        maxStock: parseInt(cleanData.maxStock)
       }
 
       if (isEditing) {

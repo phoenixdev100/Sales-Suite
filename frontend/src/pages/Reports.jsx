@@ -63,18 +63,11 @@ export default function Reports() {
   }, [])
 
   useEffect(() => {
-    // Load initial data on component mount
+    // Automatically load reports when dates or active tab changes
     if (dateFrom && dateTo) {
       fetchReports()
     }
-  }, [])
-
-  useEffect(() => {
-    // Only fetch when search is triggered (searchTrigger > 0)
-    if (searchTrigger > 0) {
-      fetchReports()
-    }
-  }, [searchTrigger])
+  }, [dateFrom, dateTo, activeTab, searchTrigger])
 
   const fetchReports = async () => {
     setLoading(true)

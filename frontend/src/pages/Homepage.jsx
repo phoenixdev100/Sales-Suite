@@ -1,19 +1,23 @@
 import { Link } from 'react-router-dom'
-import { 
-  LayoutDashboard, 
-  TrendingUp, 
-  Package, 
-  ShoppingCart, 
-  Users, 
+import { useAuth } from '../contexts/AuthContext'
+import {
+  LayoutDashboard,
+  TrendingUp,
+  Package,
+  ShoppingCart,
+  Users,
   BarChart3,
   Shield,
   Zap,
   Globe,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  User
 } from 'lucide-react'
 
 export default function Homepage() {
+  const { user } = useAuth()
+
   const features = [
     {
       icon: LayoutDashboard,
@@ -68,20 +72,34 @@ export default function Homepage() {
               </div>
               <span className="text-xl font-bold text-gray-900">Sales Suite</span>
             </div>
-            
+
             <div className="flex items-center gap-4">
-              <Link
-                to="/login"
-                className="text-gray-600 hover:text-gray-900 font-medium"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="btn btn-primary"
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <Link
+                  to="/app/dashboard"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium"
+                >
+                  <div className="h-8 w-8 bg-primary-100 rounded-full flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <span className="hidden sm:inline">{user.firstName}</span>
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="text-gray-600 hover:text-gray-900 font-medium"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="btn btn-primary"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -96,23 +114,35 @@ export default function Homepage() {
               <span className="text-primary-600 block">Smart Analytics</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              A comprehensive inventory and sales management system designed for modern businesses. 
+              A comprehensive inventory and sales management system designed for modern businesses.
               Track inventory, manage sales, and get insights that drive growth.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/register"
-                className="btn btn-primary text-lg px-8 py-3"
-              >
-                Start Free Trial
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Link>
-              <Link
-                to="/login"
-                className="btn btn-outline text-lg px-8 py-3"
-              >
-                Sign In
-              </Link>
+              {user ? (
+                <Link
+                  to="/app/dashboard"
+                  className="btn btn-primary text-lg px-8 py-3"
+                >
+                  Go to Dashboard
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/register"
+                    className="btn btn-primary text-lg px-8 py-3"
+                  >
+                    Start Free Trial
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="btn btn-outline text-lg px-8 py-3"
+                  >
+                    Sign In
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -125,7 +155,7 @@ export default function Homepage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Try the Demo</h2>
             <p className="text-gray-600">Use these demo accounts to explore all features</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white rounded-2xl p-6 border border-blue-200">
               <div className="text-center">
@@ -180,7 +210,7 @@ export default function Homepage() {
               Everything You Need to Manage Your Business
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              From inventory tracking to sales analytics, our platform provides all the tools 
+              From inventory tracking to sales analytics, our platform provides all the tools
               you need to run your business efficiently.
             </p>
           </div>
@@ -208,10 +238,10 @@ export default function Homepage() {
                 Why Choose Our Platform?
               </h2>
               <p className="text-lg text-gray-600 mb-8">
-                Built with modern technology and designed for businesses of all sizes. 
+                Built with modern technology and designed for businesses of all sizes.
                 Get started in minutes and scale as you grow.
               </p>
-              
+
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-center gap-3">
@@ -262,18 +292,29 @@ export default function Homepage() {
             Join thousands of businesses already using our platform to streamline their operations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="bg-white text-primary-600 hover:bg-gray-50 font-semibold py-3 px-8 rounded-xl transition-colors"
-            >
-              Start Your Free Trial
-            </Link>
-            <Link
-              to="/login"
-              className="border-2 border-white text-white hover:bg-white hover:text-primary-600 font-semibold py-3 px-8 rounded-xl transition-colors"
-            >
-              Sign In Now
-            </Link>
+            {user ? (
+              <Link
+                to="/app/dashboard"
+                className="bg-white text-primary-600 hover:bg-gray-50 font-semibold py-3 px-8 rounded-xl transition-colors"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="bg-white text-primary-600 hover:bg-gray-50 font-semibold py-3 px-8 rounded-xl transition-colors"
+                >
+                  Start Your Free Trial
+                </Link>
+                <Link
+                  to="/login"
+                  className="border-2 border-white text-white hover:bg-white hover:text-primary-600 font-semibold py-3 px-8 rounded-xl transition-colors"
+                >
+                  Sign In Now
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

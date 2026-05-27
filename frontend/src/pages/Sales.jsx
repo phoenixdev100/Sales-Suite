@@ -9,7 +9,8 @@ import {
   DollarSign,
   User,
   Package,
-  ChevronDown
+  ChevronDown,
+  Trash2
 } from 'lucide-react'
 import { salesAPI, usersAPI } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -34,6 +35,7 @@ export default function Sales() {
   const [totalSales, setTotalSales] = useState(0)
   const [showModal, setShowModal] = useState(false)
   const [selectedSale, setSelectedSale] = useState(null)
+  const [modalMode, setModalMode] = useState('create') // 'create', 'view', or 'edit'
   const [salesStats, setSalesStats] = useState(null)
 
   // Custom dropdown states
@@ -164,12 +166,36 @@ export default function Sales() {
 
   const handleAddSale = () => {
     setSelectedSale(null)
+    setModalMode('create')
     setShowModal(true)
   }
 
   const handleViewSale = (sale) => {
     setSelectedSale(sale)
+    setModalMode('view')
     setShowModal(true)
+  }
+
+  const handleEditSale = (sale) => {
+    setSelectedSale(sale)
+    setModalMode('edit')
+    setShowModal(true)
+  }
+
+  const handleDeleteSale = async (id) => {
+    if (window.confirm('Are you sure you want to delete this sale? This will restore stock levels for all products in this transaction.')) {
+      try {
+        await salesAPI.delete(id)
+        toast.success('Sale deleted successfully')
+        setSalesCache(new Map())
+        setLastFetchTime(null)
+        fetchSales()
+        fetchSalesStats()
+      } catch (error) {
+        console.error('Failed to delete sale:', error)
+        toast.error('Failed to delete sale')
+      }
+    }
   }
 
   const handleSaleSaved = () => {
@@ -414,6 +440,7 @@ export default function Sales() {
             <input
               type="date"
               value={dateFromFilter}
+              max={new Date().toISOString().split('T')[0]}
               onChange={(e) => setDateFromFilter(e.target.value)}
               className="input"
             />
@@ -424,6 +451,7 @@ export default function Sales() {
             <input
               type="date"
               value={dateToFilter}
+              max={new Date().toISOString().split('T')[0]}
               onChange={(e) => setDateToFilter(e.target.value)}
               className="input"
             />
@@ -671,13 +699,35 @@ export default function Sales() {
                         </div>
                       </td>
                       <td>
-                        <button
-                          onClick={() => handleViewSale(sale)}
-                          className="p-1 text-gray-400 hover:text-primary-600"
-                          title="View sale details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-2 py-1">
+                          <button
+                            onClick={() => handleViewSale(sale)}
+                            className="p-1 text-gray-400 hover:text-primary-600"
+                            title="View sale details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          {hasPermission(['ADMIN', 'MANAGER']) && (
+                            <>
+                              <button
+                                onClick={() => handleEditSale(sale)}
+                                className="p-1 text-gray-400 hover:text-warning-600"
+                                title="Edit sale"
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSale(sale.id)}
+                                className="p-1 text-gray-400 hover:text-danger-600"
+                                title="Delete sale"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -746,6 +796,7 @@ export default function Sales() {
       {showModal && (
         <SaleModal
           sale={selectedSale}
+          mode={modalMode}
           onClose={() => setShowModal(false)}
           onSave={handleSaleSaved}
         />

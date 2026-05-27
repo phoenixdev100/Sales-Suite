@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Eye, EyeOff, LayoutDashboard } from 'lucide-react'
+import { Eye, EyeOff, LayoutDashboard, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Register() {
@@ -29,7 +29,16 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Back to homepage - left side */}
+      <Link
+        to="/"
+        className="absolute left-4 top-4 sm:left-8 sm:top-8 inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <ArrowLeft className="h-5 w-5 mr-2" />
+        <span className="hidden sm:inline">Back to Homepage</span>
+      </Link>
+
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
