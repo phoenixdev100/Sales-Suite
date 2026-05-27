@@ -22,7 +22,7 @@ import {
 import { reportsAPI } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
 import logger from '../utils/logger'
-import { formatCurrency, formatNumber, generateColors } from '../utils/helpers'
+import { formatCurrency, formatNumber } from '../utils/helpers'
 import toast from 'react-hot-toast'
 
 // Frontend caching variables in module scope to persist across page navigations
