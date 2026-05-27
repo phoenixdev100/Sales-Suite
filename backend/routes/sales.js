@@ -4,8 +4,11 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest, saleSchema } = require('../utils/validation');
 const {
   cacheSales,
+  cacheSalesStats,
   invalidateSalesCache,
-  getCacheStats
+  invalidateDashboardCache,
+  invalidateReportsCache,
+  invalidateProductsCache
 } = require('../middleware/cache');
 
 const router = express.Router();
@@ -295,6 +298,9 @@ router.post('/', authenticateToken, validateRequest(saleSchema), async (req, res
 
     // Invalidate sales cache after successful creation
     invalidateSalesCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
+    invalidateProductsCache();
   } catch (error) {
     console.error('Create sale error:', error);
     res.status(500).json({ error: 'Failed to create sale' });
@@ -369,6 +375,9 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'
 
     // Invalidate sales cache after successful status update
     invalidateSalesCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
+    invalidateProductsCache();
   } catch (error) {
     console.error('Update sale status error:', error);
     res.status(500).json({ error: 'Failed to update sale status' });
@@ -376,7 +385,7 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'
 });
 
 // Get sales statistics
-router.get('/stats/overview', authenticateToken, async (req, res) => {
+router.get('/stats/overview', authenticateToken, cacheSalesStats, async (req, res) => {
   try {
     const { period = '30' } = req.query;
     const daysAgo = new Date();
@@ -410,6 +419,230 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Sales stats error:', error);
     res.status(500).json({ error: 'Failed to fetch sales statistics' });
+  }
+});
+
+// Update sale (Edit sale)
+router.put('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), validateRequest(saleSchema), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, customerName, customerEmail, customerPhone, paymentMethod, discount, tax, notes } = req.body;
+
+    const existingSale = await prisma.sale.findUnique({
+      where: { id },
+      include: { saleItems: true }
+    });
+
+    if (!existingSale) {
+      return res.status(404).json({ error: 'Sale not found' });
+    }
+
+    // Perform database operations in transaction
+    const updatedSale = await prisma.$transaction(async (tx) => {
+      // 1. Temporarily restore quantities of existing items
+      for (const item of existingSale.saleItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            quantity: {
+              increment: item.quantity
+            }
+          }
+        });
+
+        // Create adjustment record
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            type: 'IN',
+            quantity: item.quantity,
+            reason: 'Sale Edit (Restore)',
+            reference: existingSale.saleNumber
+          }
+        });
+      }
+
+      // 2. Validate and adjust quantities for new items
+      let totalAmount = 0;
+      const validatedItems = [];
+
+      for (const item of items) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId }
+        });
+
+        if (!product) {
+          throw new Error(`Product not found: ${item.productId}`);
+        }
+
+        if (!product.isActive) {
+          throw new Error(`Product is inactive: ${product.name}`);
+        }
+
+        if (product.quantity < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.name}. Available: ${product.quantity}, Requested: ${item.quantity}`);
+        }
+
+        const itemTotal = item.quantity * item.price;
+        totalAmount += itemTotal;
+
+        validatedItems.push({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          total: itemTotal
+        });
+      }
+
+      const discountAmount = discount || 0;
+      const taxAmount = tax || 0;
+      const finalAmount = totalAmount - discountAmount + taxAmount;
+
+      // 3. Delete old sale items
+      await tx.saleItem.deleteMany({
+        where: { saleId: id }
+      });
+
+      // 4. Create new sale items and decrement quantities
+      for (const item of validatedItems) {
+        await tx.saleItem.create({
+          data: {
+            saleId: id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            total: item.total
+          }
+        });
+
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            quantity: {
+              decrement: item.quantity
+            }
+          }
+        });
+
+        // Create adjustment record
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            type: 'OUT',
+            quantity: item.quantity,
+            reason: 'Sale Edit (New)',
+            reference: existingSale.saleNumber
+          }
+        });
+      }
+
+      // 5. Update sale header
+      return await tx.sale.update({
+        where: { id },
+        data: {
+          totalAmount,
+          discount: discountAmount,
+          tax: taxAmount,
+          finalAmount,
+          customerName,
+          customerEmail,
+          customerPhone,
+          paymentMethod,
+          notes
+        },
+        include: {
+          soldBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
+          },
+          saleItems: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+
+    res.json({
+      message: 'Sale updated successfully',
+      sale: updatedSale
+    });
+
+    // Invalidate caches
+    invalidateSalesCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
+    invalidateProductsCache();
+  } catch (error) {
+    console.error('Update sale error:', error);
+    res.status(500).json({ error: error.message || 'Failed to update sale' });
+  }
+});
+
+// Delete sale
+router.delete('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const sale = await prisma.sale.findUnique({
+      where: { id },
+      include: { saleItems: true }
+    });
+
+    if (!sale) {
+      return res.status(404).json({ error: 'Sale not found' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Restore product stock levels
+      for (const item of sale.saleItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            quantity: {
+              increment: item.quantity
+            }
+          }
+        });
+
+        // Stock movement
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            type: 'IN',
+            quantity: item.quantity,
+            reason: 'Sale Deleted',
+            reference: sale.saleNumber
+          }
+        });
+      }
+
+      // 2. Delete sale (will cascade delete sale items)
+      await tx.sale.delete({
+        where: { id }
+      });
+    });
+
+    res.json({ message: 'Sale deleted successfully' });
+
+    // Invalidate caches
+    invalidateSalesCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
+    invalidateProductsCache();
+  } catch (error) {
+    console.error('Delete sale error:', error);
+    res.status(500).json({ error: 'Failed to delete sale' });
   }
 });
 

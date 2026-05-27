@@ -3,12 +3,17 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest, updateUserSchema, changePasswordSchema } = require('../utils/validation');
+const {
+  cacheUsers,
+  invalidateUsersCache,
+  invalidateDashboardCache
+} = require('../middleware/cache');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Get all users (Admin only)
-router.get('/', authenticateToken, authorizeRoles('ADMIN'), async (req, res) => {
+// Get all users (Admin and Manager only)
+router.get('/', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), cacheUsers, async (req, res) => {
   try {
     const {
       page = 1,
@@ -184,6 +189,10 @@ router.put('/:id', authenticateToken, validateRequest(updateUserSchema), async (
       message: 'User updated successfully',
       user
     });
+
+    // Invalidate user cache and dependent caches
+    invalidateUsersCache();
+    invalidateDashboardCache();
   } catch (error) {
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Failed to update user' });
@@ -226,6 +235,10 @@ router.patch('/:id/password', authenticateToken, validateRequest(changePasswordS
     });
 
     res.json({ message: 'Password changed successfully' });
+
+    // Invalidate user cache and dependent caches
+    invalidateUsersCache();
+    invalidateDashboardCache();
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'Failed to change password' });
@@ -256,6 +269,10 @@ router.patch('/:id/deactivate', authenticateToken, authorizeRoles('ADMIN'), asyn
     });
 
     res.json({ message: 'User deactivated successfully' });
+
+    // Invalidate user cache and dependent caches
+    invalidateUsersCache();
+    invalidateDashboardCache();
   } catch (error) {
     console.error('Deactivate user error:', error);
     res.status(500).json({ error: 'Failed to deactivate user' });
@@ -281,6 +298,10 @@ router.patch('/:id/activate', authenticateToken, authorizeRoles('ADMIN'), async 
     });
 
     res.json({ message: 'User activated successfully' });
+
+    // Invalidate user cache and dependent caches
+    invalidateUsersCache();
+    invalidateDashboardCache();
   } catch (error) {
     console.error('Activate user error:', error);
     res.status(500).json({ error: 'Failed to activate user' });
@@ -324,6 +345,10 @@ router.delete('/:id', authenticateToken, authorizeRoles('ADMIN'), async (req, re
     });
 
     res.json({ message: 'User deleted successfully' });
+
+    // Invalidate user cache and dependent caches
+    invalidateUsersCache();
+    invalidateDashboardCache();
   } catch (error) {
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Failed to delete user' });

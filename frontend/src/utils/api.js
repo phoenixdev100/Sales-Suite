@@ -76,6 +76,8 @@ export const salesAPI = {
   getAll: (params) => api.get('/sales', { params }),
   getById: (id) => api.get(`/sales/${id}`),
   create: (data) => api.post('/sales', data),
+  update: (id, data) => api.put(`/sales/${id}`, data),
+  delete: (id) => api.delete(`/sales/${id}`),
   updateStatus: (id, status) => api.patch(`/sales/${id}/status`, { status }),
   getStats: (params) => api.get('/sales/stats/overview', { params }),
 }

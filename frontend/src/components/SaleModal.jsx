@@ -5,14 +5,14 @@ import { salesAPI, productsAPI } from '../utils/api'
 import { formatCurrency, formatDate, formatRelativeTime } from '../utils/helpers'
 import toast from 'react-hot-toast'
 
-export default function SaleModal({ sale, onClose, onSave }) {
+export default function SaleModal({ sale, mode = 'create', onClose, onSave }) {
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [showProductSearch, setShowProductSearch] = useState(false)
 
-  const isViewing = !!sale
-  const isEditing = false // For now, we only support viewing existing sales
+  const isViewing = sale && mode === 'view'
+  const isEditing = sale && mode === 'edit'
 
   const {
     register,
@@ -64,10 +64,11 @@ export default function SaleModal({ sale, onClose, onSave }) {
           productSku: item.product?.sku
         })))
       }
-    } else {
+    }
+    if (!isViewing) {
       fetchProducts()
     }
-  }, [sale, setValue])
+  }, [sale, setValue, isViewing])
 
   const fetchProducts = async (search = '') => {
     try {
@@ -157,11 +158,16 @@ export default function SaleModal({ sale, onClose, onSave }) {
         }))
       }
 
-      await salesAPI.create(saleData)
-      toast.success('Sale created successfully')
+      if (isEditing) {
+        await salesAPI.update(sale.id, saleData)
+        toast.success('Sale updated successfully')
+      } else {
+        await salesAPI.create(saleData)
+        toast.success('Sale created successfully')
+      }
       onSave()
     } catch (error) {
-      const message = error.response?.data?.error || 'Failed to create sale'
+      const message = error.response?.data?.error || `Failed to ${isEditing ? 'update' : 'create'} sale`
       toast.error(message)
     } finally {
       setLoading(false)
@@ -182,10 +188,10 @@ export default function SaleModal({ sale, onClose, onSave }) {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {isViewing ? `Sale ${sale.saleNumber}` : 'New Sale'}
+                  {isViewing ? `Sale ${sale.saleNumber}` : isEditing ? `Edit Sale ${sale.saleNumber}` : 'New Sale'}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {isViewing
+                  {isViewing || isEditing
                     ? `Created ${formatRelativeTime(sale.createdAt)} by ${sale.soldBy?.firstName} ${sale.soldBy?.lastName}`
                     : 'Create a new sales transaction'
                   }
@@ -468,12 +474,12 @@ export default function SaleModal({ sale, onClose, onSave }) {
                   {loading ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating Sale...
+                      {isEditing ? 'Updating Sale...' : 'Creating Sale...'}
                     </div>
                   ) : (
                     <>
                       <Calculator className="h-4 w-4 mr-2" />
-                      Create Sale ({formatCurrency(total)})
+                      {isEditing ? 'Update Sale' : 'Create Sale'} ({formatCurrency(total)})
                     </>
                   )}
                 </button>

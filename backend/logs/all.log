@@ -1,0 +1,84 @@
+2026-05-27 15:01:08:18 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:01:08:18 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:01:08:18 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:39:26:3926 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:39:26:3926 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:39:26:3926 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:40:37:4037 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:40:37:4037 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:40:37:4037 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:41:05:415 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:41:05:415 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:41:05:415 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:41:14:4114 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:41:14:4114 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:41:14:4114 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:41:23:4123 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:41:23:4123 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:41:23:4123 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:41:31:4131 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:41:31:4131 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:41:31:4131 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:41:41:4141 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:41:41:4141 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:41:41:4141 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:42:43:4243 [32minfo[39m: [32mCache hit for key: inventory:analytics:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:42:44:4244 [32minfo[39m: [32mCache hit for key: dashboard:analytics:30:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:42:44:4244 [32minfo[39m: [32mCache hit for key: dashboard:overview:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:43:27:4327 [32minfo[39m: [32mCache hit for key: inventory:analytics:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:43:42:4342 [32minfo[39m: [32mCache hit for key: inventory:analytics:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:43:42:4342 [32minfo[39m: [32mCache hit for key: dashboard:overview:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:43:42:4342 [32minfo[39m: [32mCache hit for key: dashboard:analytics:30:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:43:42:4342 [32minfo[39m: [32mCache hit for key: inventory:analytics:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:43:42:4342 [32minfo[39m: [32mCache hit for key: dashboard:overview:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:43:42:4342 [32minfo[39m: [32mCache hit for key: dashboard:analytics:30:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:45:12:4512 [32minfo[39m: [32mCache hit for key: categories:list[39m
+2026-05-27 15:45:13:4513 [32minfo[39m: [32mCache hit for key: products:list:{"page":"1","limit":"10","search":"","category":"","lowStock":"false","sortBy":"name","sortOrder":"asc"}[39m
+2026-05-27 15:45:13:4513 [32minfo[39m: [32mCache hit for key: products:list:{"page":"1","limit":"10","search":"","category":"","lowStock":"false","sortBy":"name","sortOrder":"asc"}[39m
+2026-05-27 15:46:14:4614 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:46:14:4614 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:46:14:4614 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:47:30:4730 [32minfo[39m: [32mCache hit for key: categories:list[39m
+2026-05-27 15:47:30:4730 [32minfo[39m: [32mCache hit for key: products:list:{"page":"1","limit":"10","search":"","category":"","lowStock":"false","sortBy":"name","sortOrder":"asc"}[39m
+2026-05-27 15:47:30:4730 [32minfo[39m: [32mCache hit for key: products:list:{"page":"1","limit":"10","search":"","category":"","lowStock":"false","sortBy":"name","sortOrder":"asc"}[39m
+2026-05-27 15:47:52:4752 [32minfo[39m: [32mCache hit for key: categories:list[39m
+2026-05-27 15:47:52:4752 [32minfo[39m: [32mCache hit for key: categories:list[39m
+2026-05-27 15:47:52:4752 [32minfo[39m: [32mCache hit for key: products:list:{"page":"1","limit":"10","search":"","category":"","lowStock":"false","sortBy":"name","sortOrder":"asc"}[39m
+2026-05-27 15:47:52:4752 [32minfo[39m: [32mCache hit for key: products:list:{"page":"1","limit":"10","search":"","category":"","lowStock":"false","sortBy":"name","sortOrder":"asc"}[39m
+2026-05-27 15:48:02:482 [32minfo[39m: [32mCache hit for key: products:list:{"search":"","limit":"20","isActive":"true"}[39m
+2026-05-27 15:48:03:483 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:49:11:4911 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:50:55:5055 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:50:55:5055 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:51:12:5112 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:51:12:5112 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:51:12:5112 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:51:24:5124 [32minfo[39m: [32mCache hit for key: inventory:analytics:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:51:24:5124 [32minfo[39m: [32mCache hit for key: dashboard:overview:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:51:25:5125 [32minfo[39m: [32mCache hit for key: dashboard:analytics:30:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:51:29:5129 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:52:06:526 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:52:07:527 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:54:26:5426 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:54:26:5426 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:54:45:5445 [32minfo[39m: [32mCache hit for key: products:list:{"search":"","limit":"20","isActive":"true"}[39m
+2026-05-27 15:55:50:5550 [32minfo[39m: [32mCache hit for key: products:list:{"search":"","limit":"20","isActive":"true"}[39m
+2026-05-27 15:56:04:564 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 15:56:42:5642 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:56:42:5642 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:56:42:5642 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:56:57:5657 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:56:57:5657 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:56:57:5657 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:57:10:5710 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:57:10:5710 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:57:10:5710 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:57:27:5727 [32minfo[39m: [32m🚀 Server running on port 5000[39m
+2026-05-27 15:57:27:5727 [32minfo[39m: [32m📊 Dashboard API available at http://localhost:5000/api[39m
+2026-05-27 15:57:27:5727 [32minfo[39m: [32m🏥 Health check: http://localhost:5000/api/health[39m
+2026-05-27 15:57:36:5736 [32minfo[39m: [32mCache hit for key: sales:stats:30:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 15:57:36:5736 [32minfo[39m: [32mCache hit for key: users:list:MANAGER[39m
+2026-05-27 15:57:36:5736 [32minfo[39m: [32mCache hit for key: sales:list:{"page":"1","limit":"10","search":"","status":"","soldBy":"","dateFrom":"","dateTo":"","sortBy":"createdAt","sortOrder":"desc"}[39m
+2026-05-27 16:00:13:013 [32minfo[39m: [32mCache hit for key: inventory:analytics:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 16:00:13:013 [32minfo[39m: [32mCache hit for key: dashboard:overview:cmh030bgj0006x0l4tkovum0j[39m
+2026-05-27 16:00:13:013 [32minfo[39m: [32mCache hit for key: dashboard:analytics:30:cmh030bgj0006x0l4tkovum0j[39m

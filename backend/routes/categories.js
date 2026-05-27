@@ -2,12 +2,19 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest, categorySchema } = require('../utils/validation');
+const {
+  cacheCategories,
+  invalidateCategoriesCache,
+  invalidateProductsCache,
+  invalidateDashboardCache,
+  invalidateReportsCache
+} = require('../middleware/cache');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all categories
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheCategories, async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
       include: {
@@ -91,6 +98,12 @@ router.post('/', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), validate
       message: 'Category created successfully',
       category
     });
+
+    // Invalidate categories cache and dependent caches
+    invalidateCategoriesCache();
+    invalidateProductsCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
   } catch (error) {
     console.error('Create category error:', error);
     res.status(500).json({ error: 'Failed to create category' });
@@ -135,6 +148,12 @@ router.put('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), valida
       message: 'Category updated successfully',
       category
     });
+
+    // Invalidate categories cache and dependent caches
+    invalidateCategoriesCache();
+    invalidateProductsCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
   } catch (error) {
     console.error('Update category error:', error);
     res.status(500).json({ error: 'Failed to update category' });
@@ -174,6 +193,12 @@ router.delete('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), asy
     });
 
     res.json({ message: 'Category deleted successfully' });
+
+    // Invalidate categories cache and dependent caches
+    invalidateCategoriesCache();
+    invalidateProductsCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
   } catch (error) {
     console.error('Delete category error:', error);
     res.status(500).json({ error: 'Failed to delete category' });

@@ -5,6 +5,9 @@ const { validateRequest, productSchema, updateProductSchema } = require('../util
 const {
   cacheProducts,
   invalidateProductsCache,
+  invalidateDashboardCache,
+  invalidateReportsCache,
+  invalidateSalesCache,
   getCacheStats
 } = require('../middleware/cache');
 
@@ -193,6 +196,9 @@ router.post('/', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), validate
 
     // Invalidate products cache after successful creation
     invalidateProductsCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
+    invalidateSalesCache();
   } catch (error) {
     console.error('Create product error:', error);
     res.status(500).json({ error: 'Failed to create product' });
@@ -284,6 +290,9 @@ router.put('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), valida
 
     // Invalidate products cache after successful update
     invalidateProductsCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
+    invalidateSalesCache();
   } catch (error) {
     console.error('Update product error:', error);
     res.status(500).json({ error: 'Failed to update product' });
@@ -322,6 +331,9 @@ router.delete('/:id', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), asy
 
     // Invalidate products cache after successful deletion
     invalidateProductsCache();
+    invalidateDashboardCache();
+    invalidateReportsCache();
+    invalidateSalesCache();
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ error: 'Failed to delete product' });

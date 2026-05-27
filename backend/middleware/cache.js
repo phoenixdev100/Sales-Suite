@@ -1,4 +1,5 @@
 const NodeCache = require('node-cache');
+const logger = require('../utils/logger');
 
 // Create cache instances with different TTLs
 const shortCache = new NodeCache({ stdTTL: 30 }); // 30 seconds for real-time data
@@ -35,6 +36,7 @@ const cacheKeys = {
   categories: (req) => `categories:list`,
   users: (req) => `users:list:${req.user?.role || 'anonymous'}`,
   sales: (req) => `sales:list:${JSON.stringify(req.query)}`,
+  salesStats: (req) => `sales:stats:${req.query.period || '30'}:${req.user?.id || 'anonymous'}`,
   salesReports: (req) => `reports:sales:${JSON.stringify(req.query)}`,
   inventoryReports: (req) => `reports:inventory:${JSON.stringify(req.query)}`,
   profitReports: (req) => `reports:profit:${JSON.stringify(req.query)}`,
@@ -48,6 +50,7 @@ const cacheProducts = cacheMiddleware(mediumCache, cacheKeys.products);
 const cacheCategories = cacheMiddleware(longCache, cacheKeys.categories);
 const cacheUsers = cacheMiddleware(shortCache, cacheKeys.users);
 const cacheSales = cacheMiddleware(mediumCache, cacheKeys.sales);
+const cacheSalesStats = cacheMiddleware(mediumCache, cacheKeys.salesStats);
 const cacheSalesReports = cacheMiddleware(mediumCache, cacheKeys.salesReports);
 const cacheInventoryReports = cacheMiddleware(mediumCache, cacheKeys.inventoryReports);
 const cacheProfitReports = cacheMiddleware(mediumCache, cacheKeys.profitReports);
@@ -67,6 +70,7 @@ const invalidateCache = (pattern) => {
 const invalidateDashboardCache = () => invalidateCache('dashboard');
 const invalidateInventoryCache = () => invalidateCache('inventory');
 const invalidateProductsCache = () => invalidateCache('products');
+const invalidateCategoriesCache = () => invalidateCache('categories');
 const invalidateUsersCache = () => invalidateCache('users');
 const invalidateSalesCache = () => invalidateCache('sales');
 const invalidateReportsCache = () => invalidateCache('reports');
@@ -86,12 +90,14 @@ module.exports = {
   cacheCategories,
   cacheUsers,
   cacheSales,
+  cacheSalesStats,
   cacheSalesReports,
   cacheInventoryReports,
   cacheProfitReports,
   invalidateDashboardCache,
   invalidateInventoryCache,
   invalidateProductsCache,
+  invalidateCategoriesCache,
   invalidateUsersCache,
   invalidateSalesCache,
   invalidateReportsCache,

@@ -43,7 +43,8 @@ const productSchema = Joi.object({
   minStock: Joi.number().integer().min(0).default(10),
   maxStock: Joi.number().integer().min(1).default(1000),
   categoryId: Joi.string().required(),
-  imageUrl: Joi.string().uri().allow('')
+  imageUrl: Joi.string().uri().allow(''),
+  isActive: Joi.boolean()
 });
 
 const updateProductSchema = productSchema.fork(['sku'], (schema) => schema.optional());
