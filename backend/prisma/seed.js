@@ -1,10 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  logger.log('🌱 Starting database seed...');
 
   // Create default categories
   const categories = await Promise.all([
@@ -50,11 +51,11 @@ async function main() {
     })
   ]);
 
-  console.log('✅ Categories created');
+  logger.log('✅ Categories created');
 
   // Create default admin user
   const hashedPassword = await bcrypt.hash('admin123', 12);
-  
+
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {},
@@ -95,7 +96,7 @@ async function main() {
     }
   });
 
-  console.log('✅ Users created');
+  logger.log('✅ Users created');
 
   // Create sample products
   const products = [
@@ -229,7 +230,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Products created');
+  logger.log('✅ Products created');
 
   // Create some sample sales
   const sampleSales = [
@@ -269,7 +270,7 @@ async function main() {
 
   for (const saleData of sampleSales) {
     const { items, ...saleInfo } = saleData;
-    
+
     // Create sale
     const sale = await prisma.sale.create({
       data: saleInfo
@@ -316,18 +317,18 @@ async function main() {
     }
   }
 
-  console.log('✅ Sample sales created');
+  logger.log('✅ Sample sales created');
 
-  console.log('🎉 Database seeded successfully!');
-  console.log('\n📋 Default Users:');
-  console.log('Admin: admin@example.com / admin123');
-  console.log('Manager: manager@example.com / manager123');
-  console.log('Salesperson: sales@example.com / sales123');
+  logger.log('🎉 Database seeded successfully!');
+  logger.log('\n📋 Default Users:');
+  logger.log('Admin: admin@example.com / admin123');
+  logger.log('Manager: manager@example.com / manager123');
+  logger.log('Salesperson: sales@example.com / sales123');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e);
+    logger.error('❌ Seed failed:', e);
     process.exit(1);
   })
   .finally(async () => {

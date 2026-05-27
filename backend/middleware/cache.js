@@ -11,7 +11,7 @@ const cacheMiddleware = (cache, keyGenerator) => {
     const cachedData = cache.get(key);
 
     if (cachedData) {
-      console.log(`Cache hit for key: ${key}`);
+      logger.log(`Cache hit for key: ${key}`);
       return res.json(cachedData);
     }
 

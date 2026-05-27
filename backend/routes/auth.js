@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { validateRequest, loginSchema, registerSchema } = require('../utils/validation');
 const { authenticateToken } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -73,7 +74,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
     res.status(500).json({ error: 'Failed to register user' });
   }
 });
@@ -112,7 +113,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error:', error);
     res.status(500).json({ error: 'Failed to login' });
   }
 });
@@ -140,7 +141,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
     res.json({ user });
   } catch (error) {
-    console.error('Profile fetch error:', error);
+    logger.error('Profile fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
@@ -170,7 +171,7 @@ router.post('/refresh', async (req, res) => {
       refreshToken: newRefreshToken
     });
   } catch (error) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error:', error);
     res.status(401).json({ error: 'Invalid refresh token' });
   }
 });

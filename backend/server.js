@@ -11,6 +11,7 @@ const categoryRoutes = require('./routes/categories');
 const saleRoutes = require('./routes/sales');
 const reportRoutes = require('./routes/reports');
 const dashboardRoutes = require('./routes/dashboard');
+const logger = require('./utils/logger');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -125,7 +126,7 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Dashboard API available at http://localhost:${PORT}/api`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+  logger.log(`🚀 Server running on port ${PORT}`);
+  logger.log(`📊 Dashboard API available at http://localhost:${PORT}/api`);
+  logger.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
 });
