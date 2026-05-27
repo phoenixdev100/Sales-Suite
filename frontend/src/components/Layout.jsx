@@ -5,18 +5,28 @@ import Topbar from './Topbar'
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const location = useLocation()
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      
+      <Sidebar
+        open={sidebarOpen}
+        setOpen={setSidebarOpen}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+      />
+
       {/* Main content */}
-      <div className="lg:pl-72">
+      <div className={sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}>
         {/* Topbar */}
-        <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        
+        <Topbar
+          onMenuClick={() => setSidebarOpen(true)}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+        />
+
         {/* Page content */}
         <main className="py-6">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -24,10 +34,10 @@ export default function Layout() {
           </div>
         </main>
       </div>
-      
+
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />

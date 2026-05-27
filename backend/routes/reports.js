@@ -1,6 +1,12 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const {
+  cacheSalesReports,
+  cacheInventoryReports,
+  cacheProfitReports,
+  invalidateReportsCache
+} = require('../middleware/cache');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
@@ -10,7 +16,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get sales report data
-router.get('/sales', authenticateToken, async (req, res) => {
+router.get('/sales', authenticateToken, cacheSalesReports, async (req, res) => {
   try {
     const {
       dateFrom = '',
@@ -80,7 +86,7 @@ router.get('/sales', authenticateToken, async (req, res) => {
       summary: {
         totalSales: sales.length,
         totalRevenue: sales.reduce((sum, sale) => sum + parseFloat(sale.finalAmount), 0),
-        averageOrderValue: sales.length > 0 ? 
+        averageOrderValue: sales.length > 0 ?
           sales.reduce((sum, sale) => sum + parseFloat(sale.finalAmount), 0) / sales.length : 0,
         dateRange: {
           from: startDate,
@@ -96,7 +102,7 @@ router.get('/sales', authenticateToken, async (req, res) => {
 });
 
 // Get inventory report
-router.get('/inventory', authenticateToken, async (req, res) => {
+router.get('/inventory', authenticateToken, cacheInventoryReports, async (req, res) => {
   try {
     const { format = 'json', lowStock = false } = req.query;
 
@@ -150,7 +156,7 @@ router.get('/inventory', authenticateToken, async (req, res) => {
 });
 
 // Get profit report
-router.get('/profit', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), async (req, res) => {
+router.get('/profit', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), cacheProfitReports, async (req, res) => {
   try {
     const {
       dateFrom = '',
@@ -193,7 +199,7 @@ router.get('/profit', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), asy
       }, 0);
 
       const profit = parseFloat(sale.finalAmount) - totalCost;
-      const profitMargin = parseFloat(sale.finalAmount) > 0 ? 
+      const profitMargin = parseFloat(sale.finalAmount) > 0 ?
         (profit / parseFloat(sale.finalAmount)) * 100 : 0;
 
       return {
@@ -278,7 +284,7 @@ function groupSalesByPeriod(sales, groupBy) {
 }
 
 function generateSalesCSV(sales, res) {
-  const csvData = sales.flatMap(sale => 
+  const csvData = sales.flatMap(sale =>
     sale.saleItems.map(item => ({
       saleNumber: sale.saleNumber,
       date: sale.createdAt.toISOString().slice(0, 10),

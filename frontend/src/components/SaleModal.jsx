@@ -10,7 +10,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
   const [products, setProducts] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [showProductSearch, setShowProductSearch] = useState(false)
-  
+
   const isViewing = !!sale
   const isEditing = false // For now, we only support viewing existing sales
 
@@ -31,7 +31,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
       discount: 0,
       tax: 0,
       notes: '',
-      items: [{ productId: '', quantity: 1, price: 0 }]
+      items: []
     }
   })
 
@@ -54,7 +54,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
       setValue('discount', sale.discount || 0)
       setValue('tax', sale.tax || 0)
       setValue('notes', sale.notes || '')
-      
+
       if (sale.saleItems) {
         setValue('items', sale.saleItems.map(item => ({
           productId: item.productId,
@@ -71,10 +71,10 @@ export default function SaleModal({ sale, onClose, onSave }) {
 
   const fetchProducts = async (search = '') => {
     try {
-      const response = await productsAPI.getAll({ 
-        search, 
+      const response = await productsAPI.getAll({
+        search,
         limit: 20,
-        isActive: true 
+        isActive: true
       })
       setProducts(response.data.products)
     } catch (error) {
@@ -91,7 +91,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
 
   const addProduct = (product) => {
     const existingIndex = watchedItems.findIndex(item => item.productId === product.id)
-    
+
     if (existingIndex >= 0) {
       // Increase quantity if product already exists
       const currentQuantity = watchedItems[existingIndex].quantity
@@ -106,7 +106,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
         productSku: product.sku
       })
     }
-    
+
     setShowProductSearch(false)
     setSearchTerm('')
   }
@@ -115,11 +115,11 @@ export default function SaleModal({ sale, onClose, onSave }) {
     const subtotal = watchedItems.reduce((sum, item) => {
       return sum + (item.quantity * item.price)
     }, 0)
-    
+
     const discountAmount = parseFloat(watchedDiscount) || 0
     const taxAmount = parseFloat(watchedTax) || 0
     const total = subtotal - discountAmount + taxAmount
-    
+
     return {
       subtotal,
       discountAmount,
@@ -133,8 +133,16 @@ export default function SaleModal({ sale, onClose, onSave }) {
   const onSubmit = async (data) => {
     if (isViewing) return
 
-    if (data.items.length === 0) {
-      toast.error('Please add at least one item')
+    // Check if there are any items in the sale
+    if (!data.items || data.items.length === 0) {
+      toast.error('Please add at least one product')
+      return
+    }
+
+    // Filter out items with empty productId and check if any valid items remain
+    const validItems = data.items.filter(item => item.productId && item.productId.trim() !== '')
+    if (validItems.length === 0) {
+      toast.error('Please add at least one product')
       return
     }
 
@@ -142,7 +150,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
     try {
       const saleData = {
         ...data,
-        items: data.items.map(item => ({
+        items: validItems.map(item => ({
           productId: item.productId,
           quantity: parseInt(item.quantity),
           price: parseFloat(item.price)
@@ -164,7 +172,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
-        
+
         <div className="inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -177,7 +185,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                   {isViewing ? `Sale ${sale.saleNumber}` : 'New Sale'}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {isViewing 
+                  {isViewing
                     ? `Created ${formatRelativeTime(sale.createdAt)} by ${sale.soldBy?.firstName} ${sale.soldBy?.lastName}`
                     : 'Create a new sales transaction'
                   }
@@ -197,7 +205,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
               {/* Customer Information */}
               <div className="lg:col-span-2 space-y-4">
                 <h4 className="text-md font-medium text-gray-900">Customer Information</h4>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -291,7 +299,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                             {field.productSku}
                           </p>
                         </div>
-                        
+
                         <div className="w-20">
                           <input
                             {...register(`items.${index}.quantity`, {
@@ -304,7 +312,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                             disabled={isViewing}
                           />
                         </div>
-                        
+
                         <div className="w-24">
                           <input
                             {...register(`items.${index}.price`, {
@@ -317,13 +325,13 @@ export default function SaleModal({ sale, onClose, onSave }) {
                             disabled={isViewing}
                           />
                         </div>
-                        
+
                         <div className="w-24 text-right">
                           <p className="font-medium text-gray-900">
                             {formatCurrency((field.quantity || 0) * (field.price || 0))}
                           </p>
                         </div>
-                        
+
                         {!isViewing && (
                           <button
                             type="button"
@@ -371,14 +379,14 @@ export default function SaleModal({ sale, onClose, onSave }) {
               {/* Order Summary */}
               <div className="space-y-4">
                 <h4 className="text-md font-medium text-gray-900">Order Summary</h4>
-                
+
                 <div className="card bg-gray-50">
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Subtotal:</span>
                       <span className="font-medium">{formatCurrency(subtotal)}</span>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <label className="text-gray-600">Discount:</label>
@@ -394,7 +402,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex justify-between items-center">
                         <label className="text-gray-600">Tax:</label>
                         <div className="w-24">
@@ -410,7 +418,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="border-t border-gray-200 pt-3">
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-semibold text-gray-900">Total:</span>
@@ -426,11 +434,10 @@ export default function SaleModal({ sale, onClose, onSave }) {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Status:</span>
-                      <span className={`badge badge-${
-                        sale.status === 'COMPLETED' ? 'success' :
+                      <span className={`badge badge-${sale.status === 'COMPLETED' ? 'success' :
                         sale.status === 'PENDING' ? 'warning' :
-                        sale.status === 'CANCELLED' ? 'danger' : 'gray'
-                      }`}>
+                          sale.status === 'CANCELLED' ? 'danger' : 'gray'
+                        }`}>
                         {sale.status?.toLowerCase()}
                       </span>
                     </div>
@@ -479,7 +486,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
             <div className="fixed inset-0 z-60 overflow-y-auto">
               <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowProductSearch(false)}></div>
-                
+
                 <div className="inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Add Product</h3>
@@ -490,7 +497,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                  
+
                   <div className="relative mb-4">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
@@ -502,7 +509,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                       autoFocus
                     />
                   </div>
-                  
+
                   <div className="max-h-64 overflow-y-auto space-y-2">
                     {products.map((product) => (
                       <button
@@ -520,7 +527,7 @@ export default function SaleModal({ sale, onClose, onSave }) {
                       </button>
                     ))}
                   </div>
-                  
+
                   {products.length === 0 && searchTerm.length > 2 && (
                     <div className="text-center py-8">
                       <p className="text-gray-600">No products found</p>

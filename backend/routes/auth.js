@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { validateRequest, loginSchema, registerSchema } = require('../utils/validation');
 const { authenticateToken } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -12,8 +13,17 @@ const prisma = new PrismaClient();
 const generateToken = (userId) => {
   return jwt.sign(
     { userId },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    process.env.JWT_SECRET || 'your-secret-key-here',
+    { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+  );
+};
+
+// Generate refresh token (longer expiry)
+const generateRefreshToken = (userId) => {
+  return jwt.sign(
+    { userId, type: 'refresh' },
+    process.env.JWT_SECRET || 'your-secret-key-here',
+    { expiresIn: '30d' }
   );
 };
 
@@ -53,16 +63,18 @@ router.post('/register', validateRequest(registerSchema), async (req, res) => {
       }
     });
 
-    // Generate token
+    // Generate tokens
     const token = generateToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
 
     res.status(201).json({
       message: 'User registered successfully',
       user,
-      token
+      token,
+      refreshToken
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
     res.status(500).json({ error: 'Failed to register user' });
   }
 });
@@ -87,8 +99,9 @@ router.post('/login', validateRequest(loginSchema), async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate token
+    // Generate tokens
     const token = generateToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
 
     // Return user data without password
     const { password: _, ...userWithoutPassword } = user;
@@ -96,10 +109,11 @@ router.post('/login', validateRequest(loginSchema), async (req, res) => {
     res.json({
       message: 'Login successful',
       user: userWithoutPassword,
-      token
+      token,
+      refreshToken
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error:', error);
     res.status(500).json({ error: 'Failed to login' });
   }
 });
@@ -127,19 +141,38 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
     res.json({ user });
   } catch (error) {
-    console.error('Profile fetch error:', error);
+    logger.error('Profile fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
 
 // Refresh token
-router.post('/refresh', authenticateToken, async (req, res) => {
+router.post('/refresh', async (req, res) => {
   try {
-    const token = generateToken(req.user.id);
-    res.json({ token });
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'Refresh token required' });
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'your-secret-key-here');
+
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    // Generate new access token
+    const token = generateToken(decoded.userId);
+    const newRefreshToken = generateRefreshToken(decoded.userId);
+
+    res.json({
+      token,
+      refreshToken: newRefreshToken
+    });
   } catch (error) {
-    console.error('Token refresh error:', error);
-    res.status(500).json({ error: 'Failed to refresh token' });
+    logger.error('Token refresh error:', error);
+    res.status(401).json({ error: 'Invalid refresh token' });
   }
 });
 

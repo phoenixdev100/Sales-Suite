@@ -2,6 +2,11 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { validateRequest, saleSchema } = require('../utils/validation');
+const {
+  cacheSales,
+  invalidateSalesCache,
+  getCacheStats
+} = require('../middleware/cache');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -10,7 +15,7 @@ const prisma = new PrismaClient();
 const generateSaleNumber = async () => {
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-  
+
   const lastSale = await prisma.sale.findFirst({
     where: {
       saleNumber: {
@@ -32,7 +37,7 @@ const generateSaleNumber = async () => {
 };
 
 // Get all sales with pagination and filtering
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, cacheSales, async (req, res) => {
   try {
     const {
       page = 1,
@@ -178,8 +183,8 @@ router.post('/', authenticateToken, validateRequest(saleSchema), async (req, res
       }
 
       if (product.quantity < item.quantity) {
-        return res.status(400).json({ 
-          error: `Insufficient stock for ${product.name}. Available: ${product.quantity}, Requested: ${item.quantity}` 
+        return res.status(400).json({
+          error: `Insufficient stock for ${product.name}. Available: ${product.quantity}, Requested: ${item.quantity}`
         });
       }
 
@@ -287,6 +292,9 @@ router.post('/', authenticateToken, validateRequest(saleSchema), async (req, res
       message: 'Sale created successfully',
       sale: completeSale
     });
+
+    // Invalidate sales cache after successful creation
+    invalidateSalesCache();
   } catch (error) {
     console.error('Create sale error:', error);
     res.status(500).json({ error: 'Failed to create sale' });
@@ -358,6 +366,9 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'
     }
 
     res.json({ message: 'Sale status updated successfully' });
+
+    // Invalidate sales cache after successful status update
+    invalidateSalesCache();
   } catch (error) {
     console.error('Update sale status error:', error);
     res.status(500).json({ error: 'Failed to update sale status' });
