@@ -25,7 +25,7 @@ const navigation = [
 
 export default function Sidebar({ open, setOpen, collapsed, setCollapsed }) {
   const location = useLocation()
-  const { user, hasPermission } = useAuth()
+  const { hasPermission } = useAuth()
 
   const filteredNavigation = navigation.filter(item =>
     !item.roles || hasPermission(item.roles)

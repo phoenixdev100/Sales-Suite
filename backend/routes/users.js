@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
-const { validateRequest, updateUserSchema, changePasswordSchema } = require('../utils/validation');
+const { validateRequest, createUserSchema, updateUserSchema, changePasswordSchema } = require('../utils/validation');
 const {
   cacheUsers,
   invalidateUsersCache,
@@ -11,6 +11,57 @@ const {
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Create new user (Admin only)
+router.post('/', authenticateToken, authorizeRoles('ADMIN'), validateRequest(createUserSchema), async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, role } = req.body;
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists with this email' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role: role || 'SALESPERSON',
+        isActive: true
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true
+      }
+    });
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user
+    });
+
+    // Invalidate user cache
+    invalidateUsersCache();
+    invalidateDashboardCache();
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
 
 // Get all users (Admin and Manager only)
 router.get('/', authenticateToken, authorizeRoles('ADMIN', 'MANAGER'), cacheUsers, async (req, res) => {

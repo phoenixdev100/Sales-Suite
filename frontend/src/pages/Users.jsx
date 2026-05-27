@@ -14,8 +14,14 @@ import {
 } from 'lucide-react'
 import { usersAPI } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
-import { formatDate, formatRelativeTime, getRoleColor, debounce } from '../utils/helpers'
+import { formatDate, formatRelativeTime, getRoleColor, debounce, formatCurrency } from '../utils/helpers'
 import toast from 'react-hot-toast'
+import UserModal from '../components/UserModal'
+
+// Frontend caching variables in module scope to persist across page navigations
+const usersCache = new Map()
+let lastFetchTime = null
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 export default function Users() {
   const { hasPermission } = useAuth()
@@ -30,6 +36,8 @@ export default function Users() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [userStats, setUserStats] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
 
   const limit = 10
 
@@ -56,6 +64,26 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       setLoading(true)
+
+      const cacheKey = JSON.stringify({
+        page: currentPage,
+        limit,
+        search: searchTerm,
+        role: roleFilter,
+        isActive: statusFilter
+      })
+
+      // Check cache first
+      const now = Date.now()
+      const cached = usersCache.get(cacheKey)
+      if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+        setUsers(cached.data.users)
+        setTotalPages(cached.data.pagination.pages)
+        setTotalUsers(cached.data.pagination.total)
+        setLoading(false)
+        return
+      }
+
       const params = {
         page: currentPage,
         limit,
@@ -65,9 +93,18 @@ export default function Users() {
       }
 
       const response = await usersAPI.getAll(params)
-      setUsers(response.data.users)
-      setTotalPages(response.data.pagination.pages)
-      setTotalUsers(response.data.pagination.total)
+      const data = response.data
+
+      // Update cache
+      usersCache.set(cacheKey, {
+        data,
+        timestamp: now
+      })
+      lastFetchTime = now
+
+      setUsers(data.users)
+      setTotalPages(data.pagination.pages)
+      setTotalUsers(data.pagination.total)
     } catch (error) {
       console.error('Failed to fetch users:', error)
       toast.error('Failed to fetch users')
@@ -89,6 +126,8 @@ export default function Users() {
     try {
       await usersAPI.activate(userId)
       toast.success('User activated successfully')
+      usersCache.clear()
+      lastFetchTime = null
       fetchUsers()
       fetchUserStats()
     } catch (error) {
@@ -101,6 +140,8 @@ export default function Users() {
     try {
       await usersAPI.deactivate(userId)
       toast.success('User deactivated successfully')
+      usersCache.clear()
+      lastFetchTime = null
       fetchUsers()
       fetchUserStats()
     } catch (error) {
@@ -117,12 +158,33 @@ export default function Users() {
     try {
       await usersAPI.delete(userId)
       toast.success('User deleted successfully')
+      usersCache.clear()
+      lastFetchTime = null
       fetchUsers()
       fetchUserStats()
     } catch (error) {
       const message = error.response?.data?.error || 'Failed to delete user'
       toast.error(message)
     }
+  }
+
+  const handleAddUser = () => {
+    setSelectedUser(null)
+    setShowModal(true)
+  }
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user)
+    setShowModal(true)
+  }
+
+  const handleUserSaved = () => {
+    setShowModal(false)
+    setSelectedUser(null)
+    usersCache.clear()
+    lastFetchTime = null
+    fetchUsers()
+    fetchUserStats()
   }
 
   const resetFilters = () => {
@@ -151,6 +213,13 @@ export default function Users() {
           <h1 className="text-2xl font-bold text-gray-900">Users</h1>
           <p className="text-gray-600">Manage user accounts and permissions</p>
         </div>
+        <button
+          onClick={handleAddUser}
+          className="btn btn-primary"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add User
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -230,7 +299,7 @@ export default function Users() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="input"
+              className="select-input"
             >
               <option value="">All Roles</option>
               <option value="ADMIN">Admin</option>
@@ -244,7 +313,7 @@ export default function Users() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="input"
+              className="select-input"
             >
               <option value="">All Status</option>
               <option value="true">Active</option>
@@ -261,7 +330,7 @@ export default function Users() {
                 setSortBy(field)
                 setSortOrder(order)
               }}
-              className="input"
+              className="select-input"
             >
               <option value="createdAt-desc">Newest First</option>
               <option value="createdAt-asc">Oldest First</option>
@@ -329,7 +398,8 @@ export default function Users() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
@@ -386,6 +456,14 @@ export default function Users() {
                       </td>
                       <td>
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="p-1 text-gray-400 hover:text-primary-600"
+                            title="Edit user"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          
                           {user.isActive ? (
                             <button
                               onClick={() => handleDeactivateUser(user.id)}
@@ -417,6 +495,84 @@ export default function Users() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="sm:hidden space-y-3 p-4">
+              {users.map((user) => (
+                <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-sm font-medium text-primary-600 flex-shrink-0">
+                        {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {user.firstName} {user.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {getRoleBadge(user.role)}
+                      <span className={`badge ${user.isActive ? 'badge-success' : 'badge-gray'} text-[10px] px-2 py-0.5`}>
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-gray-100">
+                    <div>
+                      <p className="text-gray-500 font-medium">Sales Count</p>
+                      <p className="font-bold text-gray-900 mt-0.5">{user._count?.sales || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 font-medium">Joined</p>
+                      <p className="text-gray-900 mt-0.5 flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-gray-400" />
+                        {formatDate(user.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => handleEditUser(user)}
+                      className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                      title="Edit user"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    {user.isActive ? (
+                      <button
+                        onClick={() => handleDeactivateUser(user.id)}
+                        className="p-2 text-gray-400 hover:text-warning-600 hover:bg-warning-50 rounded-lg transition-colors"
+                        title="Deactivate user"
+                      >
+                        <UserX className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleActivateUser(user.id)}
+                        className="p-2 text-gray-400 hover:text-success-600 hover:bg-success-50 rounded-lg transition-colors"
+                        title="Activate user"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteUser(user.id)}
+                      className="p-2 text-gray-400 hover:text-danger-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete user"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Pagination */}
@@ -506,6 +662,15 @@ export default function Users() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* User Modal */}
+      {showModal && (
+        <UserModal
+          user={selectedUser}
+          onClose={() => setShowModal(false)}
+          onSave={handleUserSaved}
+        />
       )}
     </div>
   )

@@ -5,7 +5,6 @@ const {
   cacheSalesReports,
   cacheInventoryReports,
   cacheProfitReports,
-  invalidateReportsCache
 } = require('../middleware/cache');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const PDFDocument = require('pdfkit');

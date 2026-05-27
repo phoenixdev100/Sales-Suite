@@ -20,8 +20,7 @@ export default function SaleModal({ sale, mode = 'create', onClose, onSave }) {
     formState: { errors },
     setValue,
     watch,
-    control,
-    reset
+    control
   } = useForm({
     defaultValues: {
       customerName: '',
@@ -266,7 +265,7 @@ export default function SaleModal({ sale, mode = 'create', onClose, onSave }) {
                     </label>
                     <select
                       {...register('paymentMethod')}
-                      className="input"
+                      className="select-input"
                       disabled={isViewing}
                     >
                       <option value="Cash">Cash</option>

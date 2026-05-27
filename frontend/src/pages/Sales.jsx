@@ -5,9 +5,7 @@ import {
   Filter,
   Eye,
   ShoppingCart,
-  Calendar,
   DollarSign,
-  User,
   Package,
   ChevronDown,
   Trash2
@@ -18,8 +16,12 @@ import { formatCurrency, formatNumber, formatDate, formatRelativeTime, getStatus
 import toast from 'react-hot-toast'
 import SaleModal from '../components/SaleModal'
 
+// Frontend caching variables in module scope to persist across page navigations
+const salesCache = new Map()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 export default function Sales() {
-  const { user, hasPermission } = useAuth()
+  const { hasPermission } = useAuth()
   const [sales, setSales] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,6 +39,8 @@ export default function Sales() {
   const [selectedSale, setSelectedSale] = useState(null)
   const [modalMode, setModalMode] = useState('create') // 'create', 'view', or 'edit'
   const [salesStats, setSalesStats] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [saleToDelete, setSaleToDelete] = useState(null)
 
   // Custom dropdown states
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
@@ -45,11 +49,6 @@ export default function Sales() {
   const statusDropdownRef = useRef(null)
   const soldByDropdownRef = useRef(null)
   const sortDropdownRef = useRef(null)
-
-  // Frontend caching
-  const [salesCache, setSalesCache] = useState(new Map())
-  const [lastFetchTime, setLastFetchTime] = useState(null)
-  const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
   const limit = 10
 
@@ -129,11 +128,11 @@ export default function Sales() {
       const data = response.data
 
       // Update cache
-      setSalesCache(prev => new Map(prev).set(cacheKey, {
+      salesCache.set(cacheKey, {
         data,
         timestamp: now
-      }))
-      setLastFetchTime(now)
+      })
+      lastFetchTime = now
 
       setSales(data.sales)
       setTotalPages(data.pagination.pages)
@@ -182,19 +181,25 @@ export default function Sales() {
     setShowModal(true)
   }
 
-  const handleDeleteSale = async (id) => {
-    if (window.confirm('Are you sure you want to delete this sale? This will restore stock levels for all products in this transaction.')) {
-      try {
-        await salesAPI.delete(id)
-        toast.success('Sale deleted successfully')
-        setSalesCache(new Map())
-        setLastFetchTime(null)
-        fetchSales()
-        fetchSalesStats()
-      } catch (error) {
-        console.error('Failed to delete sale:', error)
-        toast.error('Failed to delete sale')
-      }
+  const handleDeleteSale = (sale) => {
+    setSaleToDelete(sale)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    try {
+      await salesAPI.delete(saleToDelete.id)
+      toast.success('Sale deleted successfully')
+      salesCache.clear()
+      lastFetchTime = null
+      fetchSales()
+      fetchSalesStats()
+    } catch (error) {
+      console.error('Failed to delete sale:', error)
+      toast.error('Failed to delete sale')
+    } finally {
+      setShowDeleteConfirm(false)
+      setSaleToDelete(null)
     }
   }
 
@@ -202,8 +207,8 @@ export default function Sales() {
     setShowModal(false)
     setSelectedSale(null)
     // Clear cache when sale is saved
-    setSalesCache(new Map())
-    setLastFetchTime(null)
+    salesCache.clear()
+    lastFetchTime = null
     fetchSales()
     fetchSalesStats()
   }
@@ -719,7 +724,7 @@ export default function Sales() {
                                 </svg>
                               </button>
                               <button
-                                onClick={() => handleDeleteSale(sale.id)}
+                                onClick={() => handleDeleteSale(sale)}
                                 className="p-1 text-gray-400 hover:text-danger-600"
                                 title="Delete sale"
                               >
@@ -800,6 +805,52 @@ export default function Sales() {
           onClose={() => setShowModal(false)}
           onSave={handleSaleSaved}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+            <div className="inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-danger-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <Trash2 className="h-6 w-6 text-danger-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Delete Sale
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Are you sure you want to delete sale "{saleToDelete?.saleNumber}"? This will restore stock levels for all products in this transaction. This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="btn btn-danger"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                    setSaleToDelete(null)
+                  }}
+                  className="btn btn-outline"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

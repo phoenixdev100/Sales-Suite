@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { Menu, Bell, Search, LogOut, User, Settings, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Menu, Bell, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { Link } from 'react-router-dom'
-import { cn } from '../utils/helpers'
 
 export default function Topbar({ onMenuClick, sidebarCollapsed, setSidebarCollapsed }) {
   const { user, logout } = useAuth()

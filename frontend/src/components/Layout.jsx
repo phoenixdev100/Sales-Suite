@@ -6,7 +6,6 @@ import Topbar from './Topbar'
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const location = useLocation()
 
   return (
     <div className="min-h-screen bg-gray-50">

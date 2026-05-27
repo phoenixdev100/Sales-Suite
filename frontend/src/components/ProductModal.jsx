@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
-import { X, Upload, Package } from 'lucide-react'
+import { X, Upload, Package, ChevronDown } from 'lucide-react'
 import { productsAPI } from '../utils/api'
 import { generateSKU } from '../utils/helpers'
 import toast from 'react-hot-toast'
@@ -8,7 +8,9 @@ import toast from 'react-hot-toast'
 export default function ProductModal({ product, categories, onClose, onSave }) {
   const [loading, setLoading] = useState(false)
   const [imagePreview, setImagePreview] = useState(null)
-  
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
+  const categoryDropdownRef = useRef(null)
+
   const isEditing = !!product
 
   const {
@@ -37,6 +39,24 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
 
   const watchName = watch('name')
   const watchCategoryId = watch('categoryId')
+
+  // Register categoryId programmatically
+  useEffect(() => {
+    register('categoryId', { required: 'Category is required' })
+  }, [register])
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setCategoryDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   useEffect(() => {
     if (product) {
@@ -85,7 +105,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
         await productsAPI.create(formattedData)
         toast.success('Product created successfully')
       }
-      
+
       onSave()
     } catch (error) {
       const message = error.response?.data?.error || `Failed to ${isEditing ? 'update' : 'create'} product`
@@ -113,8 +133,8 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
-        
-        <div className="inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
+
+        <div className="inline-block align-bottom bg-white rounded-2xl px-4 pt-5 pb-4 text-left overflow-visible shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -147,7 +167,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   Product Name *
                 </label>
                 <input
-                  {...register('name', { 
+                  {...register('name', {
                     required: 'Product name is required',
                     minLength: { value: 2, message: 'Name must be at least 2 characters' }
                   })}
@@ -179,7 +199,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   SKU *
                 </label>
                 <input
-                  {...register('sku', { 
+                  {...register('sku', {
                     required: 'SKU is required',
                     minLength: { value: 2, message: 'SKU must be at least 2 characters' }
                   })}
@@ -206,21 +226,53 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
               </div>
 
               {/* Category */}
-              <div>
+              <div className="relative" ref={categoryDropdownRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Category *
                 </label>
-                <select
-                  {...register('categoryId', { required: 'Category is required' })}
-                  className="input"
+                <button
+                  type="button"
+                  onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                  className="w-full flex items-center justify-between h-10 px-3 py-2 border border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-left shadow-sm hover:bg-gray-50 transition-colors"
                 >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <span className={watchCategoryId ? 'text-gray-900' : 'text-gray-400'}>
+                    {watchCategoryId
+                      ? categories.find(c => c.id === watchCategoryId)?.name || 'Select category'
+                      : 'Select category'
+                    }
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {categoryDropdownOpen && (
+                  <div className="absolute left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                    <div className="py-1 max-h-48 overflow-y-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue('categoryId', '', { shouldValidate: true })
+                          setCategoryDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-primary-50 hover:text-primary-600 transition-colors ${!watchCategoryId ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+                      >
+                        Select category
+                      </button>
+                      {categories.map((category) => (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => {
+                            setValue('categoryId', category.id, { shouldValidate: true })
+                            setCategoryDropdownOpen(false)
+                          }}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-primary-50 hover:text-primary-600 transition-colors ${watchCategoryId === category.id ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+                        >
+                          {category.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {errors.categoryId && (
                   <p className="mt-1 text-sm text-danger-600">{errors.categoryId.message}</p>
                 )}
@@ -232,7 +284,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   Selling Price *
                 </label>
                 <input
-                  {...register('price', { 
+                  {...register('price', {
                     required: 'Price is required',
                     min: { value: 0.01, message: 'Price must be greater than 0' }
                   })}
@@ -252,7 +304,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   Cost Price *
                 </label>
                 <input
-                  {...register('cost', { 
+                  {...register('cost', {
                     required: 'Cost is required',
                     min: { value: 0.01, message: 'Cost must be greater than 0' }
                   })}
@@ -272,7 +324,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   Current Stock
                 </label>
                 <input
-                  {...register('quantity', { 
+                  {...register('quantity', {
                     min: { value: 0, message: 'Quantity cannot be negative' }
                   })}
                   type="number"
@@ -290,7 +342,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   Minimum Stock Level
                 </label>
                 <input
-                  {...register('minStock', { 
+                  {...register('minStock', {
                     min: { value: 0, message: 'Min stock cannot be negative' }
                   })}
                   type="number"
@@ -308,7 +360,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   Maximum Stock Level
                 </label>
                 <input
-                  {...register('maxStock', { 
+                  {...register('maxStock', {
                     min: { value: 1, message: 'Max stock must be at least 1' }
                   })}
                   type="number"

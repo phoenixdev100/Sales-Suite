@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   TrendingUp,
   TrendingDown,
@@ -7,15 +8,12 @@ import {
   Package,
   Users,
   AlertTriangle,
-  Eye
+  Eye,
+  ChevronDown
 } from 'lucide-react'
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -31,12 +29,7 @@ import { formatCurrency, formatNumber, formatRelativeTime, generateColors } from
 import { Link } from 'react-router-dom'
 
 export default function Dashboard() {
-  const [dashboardData, setDashboardData] = useState(null)
-  const [salesAnalytics, setSalesAnalytics] = useState(null)
-  const [inventoryAnalytics, setInventoryAnalytics] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('30')
-  const [analyticsFetched, setAnalyticsFetched] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
@@ -46,17 +39,6 @@ export default function Dashboard() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  useEffect(() => {
-    if (!analyticsFetched) {
-      fetchSalesAnalytics()
-      setAnalyticsFetched(true)
-    }
-  }, [period, analyticsFetched])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -71,46 +53,39 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Debounced function to prevent excessive API calls
-  const debounce = (func, wait) => {
-    let timeout
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout)
-        func(...args)
-      }
-      clearTimeout(timeout)
-      timeout = setTimeout(later, wait)
-    }
-  }
+  // Fetch overview data with caching
+  const { data: overviewData } = useQuery({
+    queryKey: ['dashboard', 'overview'],
+    queryFn: async () => {
+      const response = await dashboardAPI.getOverview()
+      return response.data
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  })
 
-  const fetchSalesAnalytics = async () => {
-    try {
+  // Fetch inventory analytics with caching
+  const { data: inventoryAnalytics } = useQuery({
+    queryKey: ['dashboard', 'inventory'],
+    queryFn: async () => {
+      const response = await dashboardAPI.getInventoryAnalytics()
+      return response.data
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  // Fetch sales analytics with caching (depends on period)
+  const { data: salesAnalytics } = useQuery({
+    queryKey: ['dashboard', 'salesAnalytics', period],
+    queryFn: async () => {
       const response = await dashboardAPI.getSalesAnalytics({ period })
-      setSalesAnalytics(response.data)
-    } catch (error) {
-      console.error('Failed to fetch sales analytics:', error)
-    }
-  }
+      return response.data
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  })
 
-  const fetchDashboardData = async () => {
-    try {
-      const [overviewRes, inventoryRes] = await Promise.all([
-        dashboardAPI.getOverview(),
-        dashboardAPI.getInventoryAnalytics()
-      ])
-
-      setDashboardData(overviewRes.data)
-      setInventoryAnalytics(inventoryRes.data)
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Debounced fetch functions to prevent excessive requests
-  const debouncedFetchSalesAnalytics = debounce(fetchSalesAnalytics, 500)
+  // Combine overview and inventory data
+  const dashboardData = overviewData ? { ...overviewData, inventory: inventoryAnalytics } : null
+  const loading = !overviewData || !inventoryAnalytics
 
   if (loading) {
     return (
@@ -170,31 +145,21 @@ export default function Dashboard() {
           <div className="relative">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full sm:w-auto px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 text-sm sm:text-base flex items-center justify-between hover:bg-gray-50 transition-colors"
+              className="w-full sm:w-auto px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
               <span>{period === '7' ? 'Last 7 days' : period === '30' ? 'Last 30 days' : 'Last 90 days'}</span>
-              <svg
-                className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-full sm:w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                <div className="py-1">
+              <div className="absolute right-0 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                <div className="py-1 max-h-48 overflow-y-auto">
                   <button
                     onClick={() => {
                       setPeriod('7')
                       setIsDropdownOpen(false)
-                      setAnalyticsFetched(false)
-                      // Use debounced function to prevent excessive requests
-                      setTimeout(() => debouncedFetchSalesAnalytics(), 100)
                     }}
-                    className={`w-full px-3 py-2 text-left text-sm sm:text-base hover:bg-gray-100 transition-colors ${period === '7' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${period === '7' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
                       }`}
                   >
                     Last 7 days
@@ -203,11 +168,8 @@ export default function Dashboard() {
                     onClick={() => {
                       setPeriod('30')
                       setIsDropdownOpen(false)
-                      setAnalyticsFetched(false)
-                      // Use debounced function to prevent excessive requests
-                      setTimeout(() => debouncedFetchSalesAnalytics(), 100)
                     }}
-                    className={`w-full px-3 py-2 text-left text-sm sm:text-base hover:bg-gray-100 transition-colors ${period === '30' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${period === '30' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
                       }`}
                   >
                     Last 30 days
@@ -216,11 +178,8 @@ export default function Dashboard() {
                     onClick={() => {
                       setPeriod('90')
                       setIsDropdownOpen(false)
-                      setAnalyticsFetched(false)
-                      // Use debounced function to prevent excessive requests
-                      setTimeout(() => debouncedFetchSalesAnalytics(), 100)
                     }}
-                    className={`w-full px-3 py-2 text-left text-sm sm:text-base hover:bg-gray-100 transition-colors ${period === '90' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors text-left ${period === '90' ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
                       }`}
                   >
                     Last 90 days

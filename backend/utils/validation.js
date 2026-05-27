@@ -74,6 +74,14 @@ const saleSchema = Joi.object({
 });
 
 // User validation schemas
+const createUserSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(6).required(),
+  firstName: Joi.string().min(2).max(50).required(),
+  lastName: Joi.string().min(2).max(50).required(),
+  role: Joi.string().valid('ADMIN', 'MANAGER', 'SALESPERSON').default('SALESPERSON')
+});
+
 const updateUserSchema = Joi.object({
   firstName: Joi.string().min(2).max(50),
   lastName: Joi.string().min(2).max(50),
@@ -91,6 +99,7 @@ module.exports = {
   validateRequest,
   loginSchema,
   registerSchema,
+  createUserSchema,
   productSchema,
   updateProductSchema,
   categorySchema,

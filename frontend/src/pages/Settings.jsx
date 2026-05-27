@@ -11,8 +11,6 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getRoleColor } from '../utils/helpers'
-import toast from 'react-hot-toast'
 
 export default function Settings() {
   const { user, updateProfile, changePassword } = useAuth()

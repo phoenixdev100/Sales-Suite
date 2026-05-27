@@ -13,9 +13,14 @@ import {
 } from 'lucide-react'
 import { productsAPI, categoriesAPI } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
-import { formatCurrency, formatNumber, formatDate, getStatusColor, debounce } from '../utils/helpers'
+import { formatCurrency, formatNumber, formatDate, debounce } from '../utils/helpers'
 import toast from 'react-hot-toast'
 import ProductModal from '../components/ProductModal'
+
+// Frontend caching variables in module scope to persist across page navigations
+const productsCache = new Map()
+let lastFetchTime = null
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 export default function Products() {
   const { hasPermission } = useAuth()
@@ -47,11 +52,6 @@ export default function Products() {
   // Product detail view state
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detailProduct, setDetailProduct] = useState(null)
-
-  // Frontend caching
-  const [productsCache, setProductsCache] = useState(new Map())
-  const [lastFetchTime, setLastFetchTime] = useState(null)
-  const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
   const limit = 10
 
@@ -129,11 +129,11 @@ export default function Products() {
       const data = response.data
 
       // Update cache
-      setProductsCache(prev => new Map(prev).set(cacheKey, {
+      productsCache.set(cacheKey, {
         data,
         timestamp: now
-      }))
-      setLastFetchTime(now)
+      })
+      lastFetchTime = now
 
       setProducts(data.products)
       setTotalPages(data.pagination.pages)
@@ -180,8 +180,8 @@ export default function Products() {
       await productsAPI.delete(productToDelete.id)
       toast.success('Product deleted successfully')
       // Clear cache when product is deleted
-      setProductsCache(new Map())
-      setLastFetchTime(null)
+      productsCache.clear()
+      lastFetchTime = null
       fetchProducts()
     } catch (error) {
       const message = error.response?.data?.error || 'Failed to delete product'
@@ -196,8 +196,8 @@ export default function Products() {
     setShowModal(false)
     setSelectedProduct(null)
     // Clear cache when product is saved
-    setProductsCache(new Map())
-    setLastFetchTime(null)
+    productsCache.clear()
+    lastFetchTime = null
     fetchProducts()
   }
 

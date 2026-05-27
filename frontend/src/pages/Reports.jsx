@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Download,
-  FileText,
-  Calendar,
   Search,
   TrendingUp,
   Package,
@@ -15,21 +13,22 @@ import {
   Line,
   BarChart,
   Bar,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell,
+  PieChart,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  Legend
+  ResponsiveContainer
 } from 'recharts'
 import { reportsAPI } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
 import logger from '../utils/logger'
-import { formatCurrency, formatNumber, formatDate, generateColors } from '../utils/helpers'
+import { formatCurrency, formatNumber, generateColors } from '../utils/helpers'
 import toast from 'react-hot-toast'
+
+// Frontend caching variables in module scope to persist across page navigations
+const reportsCache = new Map()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 export default function Reports() {
   const { hasPermission } = useAuth()
@@ -40,11 +39,6 @@ export default function Reports() {
   const [salesData, setSalesData] = useState(null)
   const [inventoryData, setInventoryData] = useState(null)
   const [profitData, setProfitData] = useState(null)
-
-  // Frontend caching
-  const [reportsCache, setReportsCache] = useState(new Map())
-  const [lastFetchTime, setLastFetchTime] = useState(null)
-  const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
   // Search state to prevent automatic API calls
   const [searchTrigger, setSearchTrigger] = useState(0)
@@ -60,14 +54,17 @@ export default function Reports() {
 
     setDateTo(todayString)
     setDateFrom(thirtyDaysAgoString)
+    
+    // Trigger initial search
+    setSearchTrigger(prev => prev + 1)
   }, [])
 
   useEffect(() => {
-    // Automatically load reports when dates or active tab changes
+    // Automatically load reports when active tab changes or search button is clicked
     if (dateFrom && dateTo) {
       fetchReports()
     }
-  }, [dateFrom, dateTo, activeTab, searchTrigger])
+  }, [activeTab, searchTrigger])
 
   const fetchReports = async () => {
     setLoading(true)
@@ -129,11 +126,11 @@ export default function Reports() {
 
       // Update cache if we got a response
       if (response) {
-        setReportsCache(prev => new Map(prev).set(cacheKey, {
+        reportsCache.set(cacheKey, {
           data: response.data,
           timestamp: now
-        }))
-        setLastFetchTime(now)
+        })
+        lastFetchTime = now
       }
     } catch (error) {
       console.error('Failed to fetch reports:', error)
@@ -202,8 +199,6 @@ export default function Reports() {
       { id: 'profit', name: 'Profit Analysis', icon: DollarSign }
     ] : [])
   ]
-
-  const chartColors = generateColors(10)
 
   return (
     <div className="space-y-6">

@@ -48,13 +48,13 @@ const transports = [
   new winston.transports.File({
     filename: 'logs/error.log',
     level: 'error',
-    silent: process.env.NODE_ENV === 'production',
+    silent: true,
   }),
   
   // File transport for all logs
   new winston.transports.File({
     filename: 'logs/all.log',
-    silent: process.env.NODE_ENV === 'production',
+    silent: true,
   }),
 ];
 
