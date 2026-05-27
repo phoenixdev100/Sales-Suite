@@ -27,6 +27,7 @@ import {
 } from 'recharts'
 import { reportsAPI } from '../utils/api'
 import { useAuth } from '../contexts/AuthContext'
+import logger from '../utils/logger'
 import { formatCurrency, formatNumber, formatDate, generateColors } from '../utils/helpers'
 import toast from 'react-hot-toast'
 
@@ -91,7 +92,7 @@ export default function Reports() {
       const now = Date.now()
       const cached = reportsCache.get(cacheKey)
       if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-        console.log('Using cached data for:', activeTab)
+        logger.log('Using cached data for:', activeTab)
         switch (activeTab) {
           case 'sales':
             setSalesData(cached.data)
@@ -107,27 +108,27 @@ export default function Reports() {
         return
       }
 
-      console.log('Fetching reports for tab:', activeTab, 'with params:', params)
+      logger.log('Fetching reports for tab:', activeTab, 'with params:', params)
 
       let response
       switch (activeTab) {
         case 'sales':
-          console.log('Fetching sales report...')
+          logger.log('Fetching sales report...')
           response = await reportsAPI.getSales(params)
-          console.log('Sales response:', response.data)
+          logger.log('Sales response:', response.data)
           setSalesData(response.data)
           break
         case 'inventory':
-          console.log('Fetching inventory report...')
+          logger.log('Fetching inventory report...')
           response = await reportsAPI.getInventory()
-          console.log('Inventory response:', response.data)
+          logger.log('Inventory response:', response.data)
           setInventoryData(response.data)
           break
         case 'profit':
           if (hasPermission(['ADMIN', 'MANAGER'])) {
-            console.log('Fetching profit report...')
+            logger.log('Fetching profit report...')
             response = await reportsAPI.getProfit(params)
-            console.log('Profit response:', response.data)
+            logger.log('Profit response:', response.data)
             setProfitData(response.data)
           }
           break

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import logger from './logger'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
@@ -33,7 +34,7 @@ api.interceptors.response.use(
       const errorCode = error.response?.data?.code
       // Only redirect to login for specific auth errors, not all 401s
       if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'INVALID_TOKEN' || errorCode === 'AUTH_FAILED') {
-        console.log('Authentication error, redirecting to login:', errorCode)
+        logger.log('Authentication error, redirecting to login:', errorCode)
         localStorage.removeItem('token')
         delete api.defaults.headers.common['Authorization']
         // Only redirect if not already on login page

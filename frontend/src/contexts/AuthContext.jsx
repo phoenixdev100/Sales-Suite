@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '../utils/api'
 import toast from 'react-hot-toast'
+import logger from '../utils/logger'
 
 // Helper function to check if token is about to expire
 const isTokenExpiringSoon = (token) => {
@@ -84,10 +85,10 @@ export function AuthProvider({ children }) {
       console.error('Failed to fetch profile:', error)
       // Only logout if token is expired or invalid, not for network errors
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.log('Token invalid or expired, logging out')
+        logger.log('Token invalid or expired, logging out')
         logout()
       } else {
-        console.log('Network error, keeping user logged in')
+        logger.log('Network error, keeping user logged in')
         setLoading(false)
       }
     } finally {
